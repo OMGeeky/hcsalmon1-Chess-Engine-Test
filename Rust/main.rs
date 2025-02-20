@@ -191,6 +191,7 @@ use consts::*;
 impl Engine {
     fn get_rook_attacks_fast(&mut self, starting_square: usize, mut occupancy: u64) -> u64 {
         occupancy &= constants::ROOK_MASKS[starting_square];
+        // Note: use of saturating_mul here since I think it is intended to ignore overflows
         occupancy = occupancy.saturating_mul(constants::ROOK_MAGIC_NUMBERS[starting_square]);
         occupancy >>= 64 - constants::ROOK_REL_BITS[starting_square];
         let converted_occupancy: usize = occupancy as usize;
@@ -199,6 +200,7 @@ impl Engine {
 
     fn get_bishop_attacks_fast(&mut self, starting_square: usize, mut occupancy: u64) -> u64 {
         occupancy &= constants::BISHOP_MASKS[starting_square];
+        // Note: use of saturating_mul here since I think it is intended to ignore overflows
         occupancy = occupancy.saturating_mul(constants::BISHOP_MAGIC_NUMBERS[starting_square]);
         occupancy >>= 64 - constants::BISHOP_REL_BITS[starting_square];
         constants::BISHOP_ATTACKS[starting_square][occupancy as usize]
