@@ -5,7 +5,7 @@ use std::time::Instant;
 mod constants;
 
 const NO_SQUARE: usize = 64;
-struct Wrapper {
+struct Engine {
     PIECE_ARRAY: [u64; 12],   //= [0; 12];
     WHITE_TO_PLAY: bool,      // = true;
     CASTLE_RIGHTS: [bool; 4], // = [true, true, true, true];
@@ -19,9 +19,9 @@ struct Wrapper {
     PIN_ARRAY_PIECES: [usize; 8],       //= [NO_SQUARE; 8];
 }
 
-impl Wrapper {
+impl Engine {
     fn new() -> Self {
-        Wrapper {
+        Engine {
             PIECE_ARRAY: [0; 12],
             WHITE_TO_PLAY: true,
             CASTLE_RIGHTS: [true, true, true, true],
@@ -188,7 +188,7 @@ mod consts {
     pub const BK: usize = 11;
 }
 use consts::*;
-impl Wrapper {
+impl Engine {
     fn get_rook_attacks_fast(&mut self, starting_square: usize, mut occupancy: u64) -> u64 {
         occupancy &= constants::ROOK_MASKS[starting_square];
         occupancy = occupancy.saturating_mul(constants::ROOK_MAGIC_NUMBERS[starting_square]);
@@ -2433,7 +2433,7 @@ impl Wrapper {
     }
 }
 fn main() {
-    let mut wrapper = Wrapper::new();
+    let mut wrapper = Engine::new();
     wrapper.set_starting_position();
     wrapper.print_board();
     wrapper.run_perft(6);
