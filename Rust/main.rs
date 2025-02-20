@@ -376,1933 +376,1920 @@ impl Engine {
     }
 
     fn perft_inline(&mut self, depth: i8, ply: usize) -> usize {
-        // println!("Perft called with depth: {}", depth);
-        // unsafe
-        {
-            //if (depth == 0)
-            //{
-            //    return 1;
-            //}
+        //if (depth == 0)
+        //{
+        //    return 1;
+        //}
 
-            let mut move_count: usize = 0;
+        let mut move_count: usize = 0;
 
-            //Move generating variables
-            let white_occupancies: u64 = self.PIECE_ARRAY[0]
-                | self.PIECE_ARRAY[1]
-                | self.PIECE_ARRAY[2]
-                | self.PIECE_ARRAY[3]
-                | self.PIECE_ARRAY[4]
-                | self.PIECE_ARRAY[5];
-            let black_occupancies: u64 = self.PIECE_ARRAY[6]
-                | self.PIECE_ARRAY[7]
-                | self.PIECE_ARRAY[8]
-                | self.PIECE_ARRAY[9]
-                | self.PIECE_ARRAY[10]
-                | self.PIECE_ARRAY[11];
-            let combined_occupancies: u64 = white_occupancies | black_occupancies;
-            let EMPTY_OCCUPANCIES: u64 = !combined_occupancies;
-            let mut temp_bitboard: u64;
-            let mut check_bitboard: u64 = 0;
-            let mut temp_pin_bitboard: u64;
-            let mut temp_attack: u64;
-            let mut temp_empty: u64;
-            let mut temp_captures: u64;
-            let mut starting_square: usize = NO_SQUARE;
-            let mut target_square: usize = NO_SQUARE;
+        //Move generating variables
+        let white_occupancies: u64 = self.PIECE_ARRAY[0]
+            | self.PIECE_ARRAY[1]
+            | self.PIECE_ARRAY[2]
+            | self.PIECE_ARRAY[3]
+            | self.PIECE_ARRAY[4]
+            | self.PIECE_ARRAY[5];
+        let black_occupancies: u64 = self.PIECE_ARRAY[6]
+            | self.PIECE_ARRAY[7]
+            | self.PIECE_ARRAY[8]
+            | self.PIECE_ARRAY[9]
+            | self.PIECE_ARRAY[10]
+            | self.PIECE_ARRAY[11];
+        let combined_occupancies: u64 = white_occupancies | black_occupancies;
+        let EMPTY_OCCUPANCIES: u64 = !combined_occupancies;
+        let mut temp_bitboard: u64;
+        let mut check_bitboard: u64 = 0;
+        let mut temp_pin_bitboard: u64;
+        let mut temp_attack: u64;
+        let mut temp_empty: u64;
+        let mut temp_captures: u64;
+        let mut starting_square: usize = NO_SQUARE;
+        let mut target_square: usize = NO_SQUARE;
 
-            let mut pin_number: usize = 0;
+        let mut pin_number: usize = 0;
 
-            if self.WHITE_TO_PLAY {
-                let mut white_king_check_count: usize = 0;
-                let white_king_position: usize =
-                    self.bitscan_forward_separate(self.PIECE_ARRAY[WK]);
+        if self.WHITE_TO_PLAY {
+            let mut white_king_check_count: usize = 0;
+            let white_king_position: usize = self.bitscan_forward_separate(self.PIECE_ARRAY[WK]);
 
-                //pawns
-                temp_bitboard =
-                    self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[white_king_position];
-                if temp_bitboard != 0 {
-                    let pawn_square: usize = self.bitscan_forward_separate(temp_bitboard);
-                    check_bitboard = constants::SQUARE_BBS[pawn_square];
+            //pawns
+            temp_bitboard =
+                self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[white_king_position];
+            if temp_bitboard != 0 {
+                let pawn_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                check_bitboard = constants::SQUARE_BBS[pawn_square];
 
+                white_king_check_count += 1;
+            }
+
+            //knights
+            temp_bitboard = self.PIECE_ARRAY[BN] & constants::KNIGHT_ATTACKS[white_king_position];
+            if temp_bitboard != 0 {
+                let knight_square: usize = self.bitscan_forward_separate(temp_bitboard);
+
+                check_bitboard = constants::SQUARE_BBS[knight_square];
+
+                white_king_check_count += 1;
+            }
+
+            //bishops
+            let bishop_attacks_checks: u64 =
+                self.get_bishop_attacks_fast(white_king_position, black_occupancies);
+            temp_bitboard = self.PIECE_ARRAY[BB] & bishop_attacks_checks;
+            while temp_bitboard != 0 {
+                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
+                    [piece_square]
+                    & white_occupancies;
+
+                if temp_pin_bitboard == 0 {
+                    check_bitboard =
+                        constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
                     white_king_check_count += 1;
-                }
-
-                //knights
-                temp_bitboard =
-                    self.PIECE_ARRAY[BN] & constants::KNIGHT_ATTACKS[white_king_position];
-                if temp_bitboard != 0 {
-                    let knight_square: usize = self.bitscan_forward_separate(temp_bitboard);
-
-                    check_bitboard = constants::SQUARE_BBS[knight_square];
-
-                    white_king_check_count += 1;
-                }
-
-                //bishops
-                let bishop_attacks_checks: u64 =
-                    self.get_bishop_attacks_fast(white_king_position, black_occupancies);
-                temp_bitboard = self.PIECE_ARRAY[BB] & bishop_attacks_checks;
-                while temp_bitboard != 0 {
-                    let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
-                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
-                        [piece_square]
-                        & white_occupancies;
-
-                    if temp_pin_bitboard == 0 {
-                        check_bitboard =
-                            constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
-                        white_king_check_count += 1;
-                    } else {
-                        let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
-                        temp_pin_bitboard &= temp_pin_bitboard - 1;
-
-                        if temp_pin_bitboard == 0 {
-                            self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
-                            self.PIN_ARRAY_PIECES[pin_number] = piece_square;
-                            pin_number += 1;
-                        }
-                    }
-                    temp_bitboard &= temp_bitboard - 1;
-                }
-
-                //queen
-                temp_bitboard = self.PIECE_ARRAY[BQ] & bishop_attacks_checks;
-                while temp_bitboard != 0 {
-                    let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
-
-                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
-                        [piece_square]
-                        & white_occupancies;
-
-                    if temp_pin_bitboard == 0 {
-                        check_bitboard =
-                            constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
-                        white_king_check_count += 1;
-                    } else {
-                        let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
-                        temp_pin_bitboard &= temp_pin_bitboard - 1;
-
-                        if temp_pin_bitboard == 0 {
-                            self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
-                            self.PIN_ARRAY_PIECES[pin_number] = piece_square;
-                            pin_number += 1;
-                        }
-                    }
-                    temp_bitboard &= temp_bitboard - 1;
-                }
-
-                //rook
-                let rook_attacks: u64 =
-                    self.get_rook_attacks_fast(white_king_position, black_occupancies);
-                temp_bitboard = self.PIECE_ARRAY[BR] & rook_attacks;
-                while temp_bitboard != 0 {
-                    let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
-                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
-                        [piece_square]
-                        & white_occupancies;
-
-                    if temp_pin_bitboard == 0 {
-                        check_bitboard =
-                            constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
-                        white_king_check_count += 1;
-                    } else {
-                        let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
-                        temp_pin_bitboard &= temp_pin_bitboard - 1;
-
-                        if temp_pin_bitboard == 0 {
-                            self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
-                            self.PIN_ARRAY_PIECES[pin_number] = piece_square;
-                            pin_number += 1;
-                        }
-                    }
-                    temp_bitboard &= temp_bitboard - 1;
-                }
-
-                //queen
-                temp_bitboard = self.PIECE_ARRAY[BQ] & rook_attacks;
-                while temp_bitboard != 0 {
-                    let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
-                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
-                        [piece_square]
-                        & white_occupancies;
-
-                    if temp_pin_bitboard == 0 {
-                        check_bitboard =
-                            constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
-                        white_king_check_count += 1;
-                    } else {
-                        let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
-                        temp_pin_bitboard &= temp_pin_bitboard - 1;
-
-                        if temp_pin_bitboard == 0 {
-                            self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
-                            self.PIN_ARRAY_PIECES[pin_number] = piece_square;
-                            pin_number += 1;
-                        }
-                    }
-                    temp_bitboard &= temp_bitboard - 1;
-                }
-
-                if white_king_check_count > 1 {
-                    let occupancies_without_white_king: u64 =
-                        combined_occupancies & (!self.PIECE_ARRAY[WK]);
-                    temp_attack = constants::KING_ATTACKS[white_king_position];
-                    temp_empty = temp_attack & EMPTY_OCCUPANCIES;
-                    while temp_empty != 0 {
-                        target_square = self.bitscan_forward_separate(temp_empty);
-                        temp_empty &= temp_empty - 1;
-
-                        if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square])
-                            != 0
-                        {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BK] & constants::KING_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        let bishop_attacks: u64 = self
-                            .get_bishop_attacks_fast(target_square, occupancies_without_white_king);
-                        if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BQ] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        let rook_attacks: u64 = self
-                            .get_rook_attacks_fast(target_square, occupancies_without_white_king);
-                        if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BQ] & rook_attacks) != 0 {
-                            continue;
-                        }
-
-                        self.STARTING_SQUARES[ply][move_count] = white_king_position;
-                        self.TARGET_SQUARES[ply][move_count] = target_square;
-                        self.TAGS[ply][move_count] = TAG_NONE;
-                        self.PIECES[ply][move_count] = WK;
-                        move_count += 1;
-                    }
-
-                    //captures
-                    temp_captures = temp_attack & black_occupancies;
-                    while temp_captures != 0 {
-                        target_square = self.bitscan_forward_separate(temp_captures);
-                        temp_captures &= temp_captures - 1;
-
-                        if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square])
-                            != 0
-                        {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BK] & constants::KING_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        let bishop_attacks: u64 = self
-                            .get_bishop_attacks_fast(target_square, occupancies_without_white_king);
-                        if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BQ] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        let rook_attacks: u64 = self
-                            .get_rook_attacks_fast(target_square, occupancies_without_white_king);
-                        if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BQ] & rook_attacks) != 0 {
-                            continue;
-                        }
-
-                        self.STARTING_SQUARES[ply][move_count] = white_king_position;
-                        self.TARGET_SQUARES[ply][move_count] = target_square;
-                        self.TAGS[ply][move_count] = TAG_CAPTURE;
-                        self.PIECES[ply][move_count] = WK;
-                        move_count += 1;
-                    }
                 } else {
-                    if white_king_check_count == 0 {
-                        check_bitboard = MAX_ULONG;
+                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    temp_pin_bitboard &= temp_pin_bitboard - 1;
+
+                    if temp_pin_bitboard == 0 {
+                        self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
+                        self.PIN_ARRAY_PIECES[pin_number] = piece_square;
+                        pin_number += 1;
+                    }
+                }
+                temp_bitboard &= temp_bitboard - 1;
+            }
+
+            //queen
+            temp_bitboard = self.PIECE_ARRAY[BQ] & bishop_attacks_checks;
+            while temp_bitboard != 0 {
+                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+
+                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
+                    [piece_square]
+                    & white_occupancies;
+
+                if temp_pin_bitboard == 0 {
+                    check_bitboard =
+                        constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
+                    white_king_check_count += 1;
+                } else {
+                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    temp_pin_bitboard &= temp_pin_bitboard - 1;
+
+                    if temp_pin_bitboard == 0 {
+                        self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
+                        self.PIN_ARRAY_PIECES[pin_number] = piece_square;
+                        pin_number += 1;
+                    }
+                }
+                temp_bitboard &= temp_bitboard - 1;
+            }
+
+            //rook
+            let rook_attacks: u64 =
+                self.get_rook_attacks_fast(white_king_position, black_occupancies);
+            temp_bitboard = self.PIECE_ARRAY[BR] & rook_attacks;
+            while temp_bitboard != 0 {
+                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
+                    [piece_square]
+                    & white_occupancies;
+
+                if temp_pin_bitboard == 0 {
+                    check_bitboard =
+                        constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
+                    white_king_check_count += 1;
+                } else {
+                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    temp_pin_bitboard &= temp_pin_bitboard - 1;
+
+                    if temp_pin_bitboard == 0 {
+                        self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
+                        self.PIN_ARRAY_PIECES[pin_number] = piece_square;
+                        pin_number += 1;
+                    }
+                }
+                temp_bitboard &= temp_bitboard - 1;
+            }
+
+            //queen
+            temp_bitboard = self.PIECE_ARRAY[BQ] & rook_attacks;
+            while temp_bitboard != 0 {
+                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
+                    [piece_square]
+                    & white_occupancies;
+
+                if temp_pin_bitboard == 0 {
+                    check_bitboard =
+                        constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
+                    white_king_check_count += 1;
+                } else {
+                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    temp_pin_bitboard &= temp_pin_bitboard - 1;
+
+                    if temp_pin_bitboard == 0 {
+                        self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
+                        self.PIN_ARRAY_PIECES[pin_number] = piece_square;
+                        pin_number += 1;
+                    }
+                }
+                temp_bitboard &= temp_bitboard - 1;
+            }
+
+            if white_king_check_count > 1 {
+                let occupancies_without_white_king: u64 =
+                    combined_occupancies & (!self.PIECE_ARRAY[WK]);
+                temp_attack = constants::KING_ATTACKS[white_king_position];
+                temp_empty = temp_attack & EMPTY_OCCUPANCIES;
+                while temp_empty != 0 {
+                    target_square = self.bitscan_forward_separate(temp_empty);
+                    temp_empty &= temp_empty - 1;
+
+                    if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BK] & constants::KING_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    let bishop_attacks: u64 =
+                        self.get_bishop_attacks_fast(target_square, occupancies_without_white_king);
+                    if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BQ] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    let rook_attacks: u64 =
+                        self.get_rook_attacks_fast(target_square, occupancies_without_white_king);
+                    if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BQ] & rook_attacks) != 0 {
+                        continue;
                     }
 
-                    let occupancies_without_white_king: u64 =
-                        combined_occupancies & (!self.PIECE_ARRAY[WK]);
-                    temp_attack = constants::KING_ATTACKS[white_king_position];
-                    temp_empty = temp_attack & EMPTY_OCCUPANCIES;
-                    while temp_empty != 0 {
-                        target_square = self.bitscan_forward_separate(temp_empty);
-                        temp_empty &= temp_empty - 1;
+                    self.STARTING_SQUARES[ply][move_count] = white_king_position;
+                    self.TARGET_SQUARES[ply][move_count] = target_square;
+                    self.TAGS[ply][move_count] = TAG_NONE;
+                    self.PIECES[ply][move_count] = WK;
+                    move_count += 1;
+                }
 
-                        if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square])
-                            != 0
-                        {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BK] & constants::KING_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        let bishop_attacks: u64 = self
-                            .get_bishop_attacks_fast(target_square, occupancies_without_white_king);
-                        if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BQ] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        let rook_attacks: u64 = self
-                            .get_rook_attacks_fast(target_square, occupancies_without_white_king);
-                        if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BQ] & rook_attacks) != 0 {
-                            continue;
-                        }
+                //captures
+                temp_captures = temp_attack & black_occupancies;
+                while temp_captures != 0 {
+                    target_square = self.bitscan_forward_separate(temp_captures);
+                    temp_captures &= temp_captures - 1;
 
-                        self.STARTING_SQUARES[ply][move_count] = white_king_position;
-                        self.TARGET_SQUARES[ply][move_count] = target_square;
-                        self.TAGS[ply][move_count] = TAG_NONE;
-                        self.PIECES[ply][move_count] = WK;
-                        move_count += 1;
+                    if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BK] & constants::KING_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    let bishop_attacks: u64 =
+                        self.get_bishop_attacks_fast(target_square, occupancies_without_white_king);
+                    if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BQ] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    let rook_attacks: u64 =
+                        self.get_rook_attacks_fast(target_square, occupancies_without_white_king);
+                    if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BQ] & rook_attacks) != 0 {
+                        continue;
                     }
 
-                    //captures
-                    temp_captures = temp_attack & black_occupancies;
-                    while temp_captures != 0 {
-                        target_square = self.bitscan_forward_separate(temp_captures);
-                        temp_captures &= temp_captures - 1;
-
-                        if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square])
-                            != 0
-                        {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BK] & constants::KING_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        let bishop_attacks: u64 = self
-                            .get_bishop_attacks_fast(target_square, occupancies_without_white_king);
-                        if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BQ] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        let rook_attacks: u64 = self
-                            .get_rook_attacks_fast(target_square, occupancies_without_white_king);
-                        if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[BQ] & rook_attacks) != 0 {
-                            continue;
-                        }
-
-                        self.STARTING_SQUARES[ply][move_count] = white_king_position;
-                        self.TARGET_SQUARES[ply][move_count] = target_square;
-                        self.TAGS[ply][move_count] = TAG_CAPTURE;
-                        self.PIECES[ply][move_count] = WK;
-                        move_count += 1;
-                    }
-
-                    if white_king_check_count == 0 {
-                        if self.CASTLE_RIGHTS[WKS_CASTLE_RIGHTS] && white_king_position == E1 && (WKS_EMPTY_BITBOARD & combined_occupancies) == 0 && (self.PIECE_ARRAY[WR] & constants::SQUARE_BBS[H1]) != 0 && !self.Is_Square_Attacked_By_Black_Global(
-                                            F1,
-                                            combined_occupancies,
-                                        ) && !self.Is_Square_Attacked_By_Black_Global(
-                                                G1,
-                                                combined_occupancies,
-                                            ) {
-                            self.STARTING_SQUARES[ply][move_count] = E1;
-                            self.TARGET_SQUARES[ply][move_count] = G1;
-                            self.TAGS[ply][move_count] = TAG_WCASTLEKS;
-                            self.PIECES[ply][move_count] = WK;
-                            move_count += 1;
-                        }
-                        if self.CASTLE_RIGHTS[WQS_CASTLE_RIGHTS] && white_king_position == E1 && (WQS_EMPTY_BITBOARD & combined_occupancies) == 0 && (self.PIECE_ARRAY[WR] & constants::SQUARE_BBS[A1]) != 0 && !self.Is_Square_Attacked_By_Black_Global(
-                                            C1,
-                                            combined_occupancies,
-                                        ) && !self.Is_Square_Attacked_By_Black_Global(
-                                                D1,
-                                                combined_occupancies,
-                                            ) {
-                            self.STARTING_SQUARES[ply][move_count] = E1;
-                            self.TARGET_SQUARES[ply][move_count] = C1;
-                            self.TAGS[ply][move_count] = TAG_WCASTLEQS;
-                            self.PIECES[ply][move_count] = WK;
-                            move_count += 1;
-                        }
-                    }
-
-                    temp_bitboard = self.PIECE_ARRAY[WN];
-
-                    while temp_bitboard != 0 {
-                        starting_square = self.bitscan_forward_separate(temp_bitboard);
-                        temp_bitboard &= temp_bitboard - 1; //removes the knight from that square to not infinitely loop
-
-                        temp_pin_bitboard = MAX_ULONG;
-                        if pin_number != 0 {
-                            for i in 0..pin_number {
-                                if self.PIN_ARRAY_SQUARES[i] == starting_square {
-                                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
-                                        [white_king_position][self.PIN_ARRAY_PIECES[i]];
-                                }
-                            }
-                        }
-
-                        temp_attack = ((constants::KNIGHT_ATTACKS[starting_square]
-                            & black_occupancies)
-                            & check_bitboard)
-                            & temp_pin_bitboard; //gets knight captures
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_CAPTURE;
-                            self.PIECES[ply][move_count] = WN;
-                            move_count += 1;
-                        }
-
-                        temp_attack = ((constants::KNIGHT_ATTACKS[starting_square]
-                            & EMPTY_OCCUPANCIES)
-                            & check_bitboard)
-                            & temp_pin_bitboard;
-
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_NONE;
-                            self.PIECES[ply][move_count] = WN;
-                            move_count += 1;
-                        }
-                    }
-
-                    temp_bitboard = self.PIECE_ARRAY[WP];
-
-                    while temp_bitboard != 0 {
-                        starting_square = self.bitscan_forward_separate(temp_bitboard);
-                        temp_bitboard &= temp_bitboard - 1;
-
-                        temp_pin_bitboard = MAX_ULONG;
-                        if pin_number != 0 {
-                            for i in 0..pin_number {
-                                if self.PIN_ARRAY_SQUARES[i] == starting_square {
-                                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
-                                        [white_king_position][self.PIN_ARRAY_PIECES[i]];
-                                }
-                            }
-                        }
-
-                        if (constants::SQUARE_BBS[starting_square - 8] & combined_occupancies) == 0
-                        {
-                            //if up one square is empty
-                            if ((constants::SQUARE_BBS[starting_square - 8] & check_bitboard)
-                                & temp_pin_bitboard)
-                                != 0
-                            {
-                                if (constants::SQUARE_BBS[starting_square] & RANK_7_BITBOARD) != 0 {
-                                    //if promotion
-                                    self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = starting_square - 8;
-                                    self.TAGS[ply][move_count] = TAG_W_QUEEN_PROMOTION;
-                                    self.PIECES[ply][move_count] = WP;
-                                    move_count += 1;
-
-                                    self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = starting_square - 8;
-                                    self.TAGS[ply][move_count] = TAG_W_ROOK_PROMOTION;
-                                    self.PIECES[ply][move_count] = WP;
-                                    move_count += 1;
-
-                                    self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = starting_square - 8;
-                                    self.TAGS[ply][move_count] = TAG_W_BISHOP_PROMOTION;
-                                    self.PIECES[ply][move_count] = WP;
-                                    move_count += 1;
-
-                                    self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = starting_square - 8;
-                                    self.TAGS[ply][move_count] = TAG_W_KNIGHT_PROMOTION;
-                                    self.PIECES[ply][move_count] = WP;
-                                    move_count += 1;
-                                } else {
-                                    self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = starting_square - 8;
-                                    self.TAGS[ply][move_count] = TAG_NONE;
-                                    self.PIECES[ply][move_count] = WP;
-                                    move_count += 1;
-                                }
-                            }
-
-                            if (constants::SQUARE_BBS[starting_square] & RANK_2_BITBOARD) != 0 {
-                                //if on rank 2
-                                if ((constants::SQUARE_BBS[starting_square - 16] & check_bitboard)
-                                    & temp_pin_bitboard)
-                                    != 0
-                                {
-                                    //if not pinned or
-                                    if ((constants::SQUARE_BBS[starting_square - 16])
-                                        & combined_occupancies)
-                                        == 0
-                                    {
-                                        //if up two squares and one square are empty
-                                        self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                        self.TARGET_SQUARES[ply][move_count] = starting_square - 16;
-                                        self.TAGS[ply][move_count] = TAG_DOUBLE_PAWN_WHITE;
-                                        self.PIECES[ply][move_count] = WP;
-                                        move_count += 1;
-                                    }
-                                }
-                            }
-                        }
-
-                        temp_attack = ((constants::WHITE_PAWN_ATTACKS[starting_square]
-                            & black_occupancies)
-                            & check_bitboard)
-                            & temp_pin_bitboard; //if black piece diagonal to pawn
-
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            if (constants::SQUARE_BBS[starting_square] & RANK_7_BITBOARD) != 0
-                            //if promotion
-                            {
-                                self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = target_square;
-                                self.TAGS[ply][move_count] = TAG_W_CAPTURE_BISHOP_PROMOTION;
-                                self.PIECES[ply][move_count] = WP;
-                                move_count += 1;
-
-                                self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = target_square;
-                                self.TAGS[ply][move_count] = TAG_W_CAPTURE_KNIGHT_PROMOTION;
-                                self.PIECES[ply][move_count] = WP;
-                                move_count += 1;
-
-                                self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = target_square;
-                                self.TAGS[ply][move_count] = TAG_W_CAPTURE_QUEEN_PROMOTION;
-                                self.PIECES[ply][move_count] = WP;
-                                move_count += 1;
-
-                                self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = target_square;
-                                self.TAGS[ply][move_count] = TAG_W_CAPTURE_ROOK_PROMOTION;
-                                self.PIECES[ply][move_count] = WP;
-                                move_count += 1;
-                            } else {
-                                self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = target_square;
-                                self.TAGS[ply][move_count] = TAG_CAPTURE;
-                                self.PIECES[ply][move_count] = WP;
-                                move_count += 1;
-                            }
-                        }
-
-                        if (constants::SQUARE_BBS[starting_square] & RANK_5_BITBOARD) != 0 && self.EP != NO_SQUARE && (((constants::WHITE_PAWN_ATTACKS[starting_square]
-                                    & constants::SQUARE_BBS[self.EP])
-                                    & check_bitboard)
-                                    & temp_pin_bitboard) != 0 {
-                            if (self.PIECE_ARRAY[WK] & RANK_5_BITBOARD) == 0
-                            //if no king on rank 5
-                            {
-                                self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = self.EP;
-                                self.TAGS[ply][move_count] = TAG_WHITEEP;
-                                self.PIECES[ply][move_count] = WP;
-                                move_count += 1;
-                            } else if (self.PIECE_ARRAY[BR] & RANK_5_BITBOARD) == 0
-                                && (self.PIECE_ARRAY[BQ] & RANK_5_BITBOARD) == 0
-                            // if no b rook or queen on rank 5
-                            {
-                                self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = self.EP;
-                                self.TAGS[ply][move_count] = TAG_WHITEEP;
-                                self.PIECES[ply][move_count] = WP;
-                                move_count += 1;
-                            } else
-                            //wk and br or bq on rank 5
-                            {
-                                let mut occupancy_without_ep_pawns: u64 =
-                                    combined_occupancies
-                                        & (!constants::SQUARE_BBS[starting_square]);
-                                occupancy_without_ep_pawns &=
-                                    !constants::SQUARE_BBS[self.EP + 8];
-
-                                let rook_attacks_from_king: u64 = self
-                                    .get_rook_attacks_fast(
-                                        white_king_position,
-                                        occupancy_without_ep_pawns,
-                                    );
-                                if (rook_attacks_from_king & self.PIECE_ARRAY[BR]) == 0 && (rook_attacks_from_king & self.PIECE_ARRAY[BQ]) == 0 {
-                                    self.STARTING_SQUARES[ply][move_count] =
-                                        starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = self.EP;
-                                    self.TAGS[ply][move_count] = TAG_WHITEEP;
-                                    self.PIECES[ply][move_count] = WP;
-                                    move_count += 1;
-                                }
-                            }
-                        }
-                    }
-
-                    temp_bitboard = self.PIECE_ARRAY[WR];
-                    while temp_bitboard != 0 {
-                        starting_square = self.bitscan_forward_separate(temp_bitboard);
-                        temp_bitboard &= temp_bitboard - 1;
-
-                        temp_pin_bitboard = MAX_ULONG;
-                        if pin_number != 0 {
-                            for i in 0..pin_number {
-                                if self.PIN_ARRAY_SQUARES[i] == starting_square {
-                                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
-                                        [white_king_position][self.PIN_ARRAY_PIECES[i]];
-                                }
-                            }
-                        }
-
-                        let rook_attacks =
-                            self.get_rook_attacks_fast(starting_square, combined_occupancies);
-
-                        temp_attack = ((rook_attacks & black_occupancies) & check_bitboard)
-                            & temp_pin_bitboard;
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_CAPTURE;
-                            self.PIECES[ply][move_count] = WR;
-                            move_count += 1;
-                        }
-
-                        temp_attack = ((rook_attacks & EMPTY_OCCUPANCIES) & check_bitboard)
-                            & temp_pin_bitboard;
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_NONE;
-                            self.PIECES[ply][move_count] = WR;
-                            move_count += 1;
-                        }
-                    }
-
-                    temp_bitboard = self.PIECE_ARRAY[WB];
-                    while temp_bitboard != 0 {
-                        starting_square = self.bitscan_forward_separate(temp_bitboard);
-                        temp_bitboard &= temp_bitboard - 1;
-
-                        temp_pin_bitboard = MAX_ULONG;
-                        if pin_number != 0 {
-                            for i in 0..pin_number {
-                                if self.PIN_ARRAY_SQUARES[i] == starting_square {
-                                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
-                                        [white_king_position][self.PIN_ARRAY_PIECES[i]];
-                                }
-                            }
-                        }
-
-                        let bishop_attacks: u64 =
-                            self.get_bishop_attacks_fast(starting_square, combined_occupancies);
-
-                        temp_attack = ((bishop_attacks & black_occupancies) & check_bitboard)
-                            & temp_pin_bitboard;
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_CAPTURE;
-                            self.PIECES[ply][move_count] = WB;
-                            move_count += 1;
-                        }
-
-                        temp_attack = ((bishop_attacks & EMPTY_OCCUPANCIES) & check_bitboard)
-                            & temp_pin_bitboard;
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_NONE;
-                            self.PIECES[ply][move_count] = WB;
-                            move_count += 1;
-                        }
-                    }
-
-                    temp_bitboard = self.PIECE_ARRAY[WQ];
-                    while temp_bitboard != 0 {
-                        starting_square = self.bitscan_forward_separate(temp_bitboard);
-                        temp_bitboard &= temp_bitboard - 1;
-
-                        temp_pin_bitboard = MAX_ULONG;
-                        if pin_number != 0 {
-                            for i in 0..pin_number {
-                                if self.PIN_ARRAY_SQUARES[i] == starting_square {
-                                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
-                                        [white_king_position][self.PIN_ARRAY_PIECES[i]];
-                                }
-                            }
-                        }
-
-                        let mut queen_attacks =
-                            self.get_rook_attacks_fast(starting_square, combined_occupancies);
-                        queen_attacks |=
-                            self.get_bishop_attacks_fast(starting_square, combined_occupancies);
-
-                        temp_attack = ((queen_attacks & black_occupancies) & check_bitboard)
-                            & temp_pin_bitboard;
-
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_CAPTURE;
-                            self.PIECES[ply][move_count] = WQ;
-                            move_count += 1;
-                        }
-
-                        temp_attack = ((queen_attacks & EMPTY_OCCUPANCIES) & check_bitboard)
-                            & temp_pin_bitboard;
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_NONE;
-                            self.PIECES[ply][move_count] = WQ;
-                            move_count += 1;
-                        }
-                    }
+                    self.STARTING_SQUARES[ply][move_count] = white_king_position;
+                    self.TARGET_SQUARES[ply][move_count] = target_square;
+                    self.TAGS[ply][move_count] = TAG_CAPTURE;
+                    self.PIECES[ply][move_count] = WK;
+                    move_count += 1;
                 }
             } else {
-                //black move
-                let mut black_king_check_count: u8 = 0;
-                let black_king_position: usize =
-                    self.bitscan_forward_separate(self.PIECE_ARRAY[BK]);
-                //pawns
-                temp_bitboard =
-                    self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[black_king_position];
-                if temp_bitboard != 0 {
-                    let pawn_square = self.bitscan_forward_separate(temp_bitboard);
-                    if check_bitboard == 0 {
-                        check_bitboard = constants::SQUARE_BBS[pawn_square];
+                if white_king_check_count == 0 {
+                    check_bitboard = MAX_ULONG;
+                }
+
+                let occupancies_without_white_king: u64 =
+                    combined_occupancies & (!self.PIECE_ARRAY[WK]);
+                temp_attack = constants::KING_ATTACKS[white_king_position];
+                temp_empty = temp_attack & EMPTY_OCCUPANCIES;
+                while temp_empty != 0 {
+                    target_square = self.bitscan_forward_separate(temp_empty);
+                    temp_empty &= temp_empty - 1;
+
+                    if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BK] & constants::KING_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    let bishop_attacks: u64 =
+                        self.get_bishop_attacks_fast(target_square, occupancies_without_white_king);
+                    if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BQ] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    let rook_attacks: u64 =
+                        self.get_rook_attacks_fast(target_square, occupancies_without_white_king);
+                    if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BQ] & rook_attacks) != 0 {
+                        continue;
                     }
 
-                    black_king_check_count += 1;
+                    self.STARTING_SQUARES[ply][move_count] = white_king_position;
+                    self.TARGET_SQUARES[ply][move_count] = target_square;
+                    self.TAGS[ply][move_count] = TAG_NONE;
+                    self.PIECES[ply][move_count] = WK;
+                    move_count += 1;
                 }
 
-                //knights
-                temp_bitboard =
-                    self.PIECE_ARRAY[WN] & constants::KNIGHT_ATTACKS[black_king_position];
-                if temp_bitboard != 0 {
-                    let knight_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                //captures
+                temp_captures = temp_attack & black_occupancies;
+                while temp_captures != 0 {
+                    target_square = self.bitscan_forward_separate(temp_captures);
+                    temp_captures &= temp_captures - 1;
 
-                    check_bitboard = constants::SQUARE_BBS[knight_square];
+                    if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BK] & constants::KING_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    let bishop_attacks: u64 =
+                        self.get_bishop_attacks_fast(target_square, occupancies_without_white_king);
+                    if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BQ] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    let rook_attacks: u64 =
+                        self.get_rook_attacks_fast(target_square, occupancies_without_white_king);
+                    if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[BQ] & rook_attacks) != 0 {
+                        continue;
+                    }
 
-                    black_king_check_count += 1;
+                    self.STARTING_SQUARES[ply][move_count] = white_king_position;
+                    self.TARGET_SQUARES[ply][move_count] = target_square;
+                    self.TAGS[ply][move_count] = TAG_CAPTURE;
+                    self.PIECES[ply][move_count] = WK;
+                    move_count += 1;
                 }
 
-                //bishops
-                let bishop_attacks_checks: u64 =
-                    self.get_bishop_attacks_fast(black_king_position, white_occupancies);
-                temp_bitboard = self.PIECE_ARRAY[WB] & bishop_attacks_checks;
+                if white_king_check_count == 0 {
+                    if self.CASTLE_RIGHTS[WKS_CASTLE_RIGHTS]
+                        && white_king_position == E1
+                        && (WKS_EMPTY_BITBOARD & combined_occupancies) == 0
+                        && (self.PIECE_ARRAY[WR] & constants::SQUARE_BBS[H1]) != 0
+                        && !self.Is_Square_Attacked_By_Black_Global(F1, combined_occupancies)
+                        && !self.Is_Square_Attacked_By_Black_Global(G1, combined_occupancies)
+                    {
+                        self.STARTING_SQUARES[ply][move_count] = E1;
+                        self.TARGET_SQUARES[ply][move_count] = G1;
+                        self.TAGS[ply][move_count] = TAG_WCASTLEKS;
+                        self.PIECES[ply][move_count] = WK;
+                        move_count += 1;
+                    }
+                    if self.CASTLE_RIGHTS[WQS_CASTLE_RIGHTS]
+                        && white_king_position == E1
+                        && (WQS_EMPTY_BITBOARD & combined_occupancies) == 0
+                        && (self.PIECE_ARRAY[WR] & constants::SQUARE_BBS[A1]) != 0
+                        && !self.Is_Square_Attacked_By_Black_Global(C1, combined_occupancies)
+                        && !self.Is_Square_Attacked_By_Black_Global(D1, combined_occupancies)
+                    {
+                        self.STARTING_SQUARES[ply][move_count] = E1;
+                        self.TARGET_SQUARES[ply][move_count] = C1;
+                        self.TAGS[ply][move_count] = TAG_WCASTLEQS;
+                        self.PIECES[ply][move_count] = WK;
+                        move_count += 1;
+                    }
+                }
+
+                temp_bitboard = self.PIECE_ARRAY[WN];
+
                 while temp_bitboard != 0 {
-                    let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
-                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
-                        [piece_square]
-                        & black_occupancies;
+                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    temp_bitboard &= temp_bitboard - 1; //removes the knight from that square to not infinitely loop
 
-                    if temp_pin_bitboard == 0 {
-                        if check_bitboard == 0 {
-                            check_bitboard =
-                                constants::INBETWEEN_BITBOARDS[black_king_position][piece_square];
-                        }
-                        black_king_check_count += 1;
-                    } else {
-                        let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
-                        temp_pin_bitboard &= temp_pin_bitboard - 1;
-
-                        if temp_pin_bitboard == 0 {
-                            self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
-                            self.PIN_ARRAY_PIECES[pin_number] = piece_square;
-                            pin_number += 1;
+                    temp_pin_bitboard = MAX_ULONG;
+                    if pin_number != 0 {
+                        for i in 0..pin_number {
+                            if self.PIN_ARRAY_SQUARES[i] == starting_square {
+                                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
+                                    [white_king_position][self.PIN_ARRAY_PIECES[i]];
+                            }
                         }
                     }
-                    temp_bitboard &= temp_bitboard - 1;
-                }
 
-                //queen
-                temp_bitboard = self.PIECE_ARRAY[WQ] & bishop_attacks_checks;
-                while temp_bitboard != 0 {
-                    let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
-                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
-                        [piece_square]
-                        & black_occupancies;
+                    temp_attack = ((constants::KNIGHT_ATTACKS[starting_square]
+                        & black_occupancies)
+                        & check_bitboard)
+                        & temp_pin_bitboard; //gets knight captures
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
 
-                    if temp_pin_bitboard == 0 {
-                        if check_bitboard == 0 {
-                            check_bitboard =
-                                constants::INBETWEEN_BITBOARDS[black_king_position][piece_square];
-                        }
-                        black_king_check_count += 1;
-                    } else {
-                        let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
-                        temp_pin_bitboard &= temp_pin_bitboard - 1;
-
-                        if temp_pin_bitboard == 0 {
-                            self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
-                            self.PIN_ARRAY_PIECES[pin_number] = piece_square;
-                            pin_number += 1;
-                        }
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_CAPTURE;
+                        self.PIECES[ply][move_count] = WN;
+                        move_count += 1;
                     }
-                    temp_bitboard &= temp_bitboard - 1;
-                }
 
-                //rook
-                let rook_attacks =
-                    self.get_rook_attacks_fast(black_king_position, white_occupancies);
-                temp_bitboard = self.PIECE_ARRAY[WR] & rook_attacks;
-                while temp_bitboard != 0 {
-                    let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
-                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
-                        [piece_square]
-                        & black_occupancies;
-
-                    if temp_pin_bitboard == 0 {
-                        if check_bitboard == 0 {
-                            check_bitboard =
-                                constants::INBETWEEN_BITBOARDS[black_king_position][piece_square];
-                        }
-                        black_king_check_count += 1;
-                    } else {
-                        let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
-                        temp_pin_bitboard &= temp_pin_bitboard - 1;
-
-                        if temp_pin_bitboard == 0 {
-                            self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
-                            self.PIN_ARRAY_PIECES[pin_number] = piece_square;
-                            pin_number += 1;
-                        }
-                    }
-                    temp_bitboard &= temp_bitboard - 1;
-                }
-
-                //queen
-                temp_bitboard = self.PIECE_ARRAY[WQ] & rook_attacks;
-                while temp_bitboard != 0 {
-                    let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
-
-                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
-                        [piece_square]
-                        & black_occupancies;
-
-                    if temp_pin_bitboard == 0 {
-                        if check_bitboard == 0 {
-                            check_bitboard =
-                                constants::INBETWEEN_BITBOARDS[black_king_position][piece_square];
-                        }
-                        black_king_check_count += 1;
-                    } else {
-                        let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
-                        temp_pin_bitboard &= temp_pin_bitboard - 1;
-
-                        if temp_pin_bitboard == 0 {
-                            self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
-                            self.PIN_ARRAY_PIECES[pin_number] = piece_square;
-                            pin_number += 1;
-                        }
-                    }
-                    temp_bitboard &= temp_bitboard - 1;
-                }
-
-                if black_king_check_count > 1 {
-                    let occupancy_without_black_king =
-                        combined_occupancies & (!self.PIECE_ARRAY[BK]);
-                    temp_attack = constants::KING_ATTACKS[black_king_position] & white_occupancies;
-
-                    temp_attack = constants::KING_ATTACKS[black_king_position] & white_occupancies;
+                    temp_attack = ((constants::KNIGHT_ATTACKS[starting_square]
+                        & EMPTY_OCCUPANCIES)
+                        & check_bitboard)
+                        & temp_pin_bitboard;
 
                     while temp_attack != 0 {
                         target_square = self.bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
-                        if (self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[target_square])
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_NONE;
+                        self.PIECES[ply][move_count] = WN;
+                        move_count += 1;
+                    }
+                }
+
+                temp_bitboard = self.PIECE_ARRAY[WP];
+
+                while temp_bitboard != 0 {
+                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    temp_bitboard &= temp_bitboard - 1;
+
+                    temp_pin_bitboard = MAX_ULONG;
+                    if pin_number != 0 {
+                        for i in 0..pin_number {
+                            if self.PIN_ARRAY_SQUARES[i] == starting_square {
+                                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
+                                    [white_king_position][self.PIN_ARRAY_PIECES[i]];
+                            }
+                        }
+                    }
+
+                    if (constants::SQUARE_BBS[starting_square - 8] & combined_occupancies) == 0 {
+                        //if up one square is empty
+                        if ((constants::SQUARE_BBS[starting_square - 8] & check_bitboard)
+                            & temp_pin_bitboard)
                             != 0
                         {
-                            continue;
+                            if (constants::SQUARE_BBS[starting_square] & RANK_7_BITBOARD) != 0 {
+                                //if promotion
+                                self.STARTING_SQUARES[ply][move_count] = starting_square;
+                                self.TARGET_SQUARES[ply][move_count] = starting_square - 8;
+                                self.TAGS[ply][move_count] = TAG_W_QUEEN_PROMOTION;
+                                self.PIECES[ply][move_count] = WP;
+                                move_count += 1;
+
+                                self.STARTING_SQUARES[ply][move_count] = starting_square;
+                                self.TARGET_SQUARES[ply][move_count] = starting_square - 8;
+                                self.TAGS[ply][move_count] = TAG_W_ROOK_PROMOTION;
+                                self.PIECES[ply][move_count] = WP;
+                                move_count += 1;
+
+                                self.STARTING_SQUARES[ply][move_count] = starting_square;
+                                self.TARGET_SQUARES[ply][move_count] = starting_square - 8;
+                                self.TAGS[ply][move_count] = TAG_W_BISHOP_PROMOTION;
+                                self.PIECES[ply][move_count] = WP;
+                                move_count += 1;
+
+                                self.STARTING_SQUARES[ply][move_count] = starting_square;
+                                self.TARGET_SQUARES[ply][move_count] = starting_square - 8;
+                                self.TAGS[ply][move_count] = TAG_W_KNIGHT_PROMOTION;
+                                self.PIECES[ply][move_count] = WP;
+                                move_count += 1;
+                            } else {
+                                self.STARTING_SQUARES[ply][move_count] = starting_square;
+                                self.TARGET_SQUARES[ply][move_count] = starting_square - 8;
+                                self.TAGS[ply][move_count] = TAG_NONE;
+                                self.PIECES[ply][move_count] = WP;
+                                move_count += 1;
+                            }
                         }
-                        if (self.PIECE_ARRAY[WN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
-                            continue;
+
+                        if (constants::SQUARE_BBS[starting_square] & RANK_2_BITBOARD) != 0 {
+                            //if on rank 2
+                            if ((constants::SQUARE_BBS[starting_square - 16] & check_bitboard)
+                                & temp_pin_bitboard)
+                                != 0
+                            {
+                                //if not pinned or
+                                if ((constants::SQUARE_BBS[starting_square - 16])
+                                    & combined_occupancies)
+                                    == 0
+                                {
+                                    //if up two squares and one square are empty
+                                    self.STARTING_SQUARES[ply][move_count] = starting_square;
+                                    self.TARGET_SQUARES[ply][move_count] = starting_square - 16;
+                                    self.TAGS[ply][move_count] = TAG_DOUBLE_PAWN_WHITE;
+                                    self.PIECES[ply][move_count] = WP;
+                                    move_count += 1;
+                                }
+                            }
                         }
-                        if (self.PIECE_ARRAY[WK] & constants::KING_ATTACKS[target_square]) != 0 {
-                            continue;
+                    }
+
+                    temp_attack = ((constants::WHITE_PAWN_ATTACKS[starting_square]
+                        & black_occupancies)
+                        & check_bitboard)
+                        & temp_pin_bitboard; //if black piece diagonal to pawn
+
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
+
+                        if (constants::SQUARE_BBS[starting_square] & RANK_7_BITBOARD) != 0
+                        //if promotion
+                        {
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = target_square;
+                            self.TAGS[ply][move_count] = TAG_W_CAPTURE_BISHOP_PROMOTION;
+                            self.PIECES[ply][move_count] = WP;
+                            move_count += 1;
+
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = target_square;
+                            self.TAGS[ply][move_count] = TAG_W_CAPTURE_KNIGHT_PROMOTION;
+                            self.PIECES[ply][move_count] = WP;
+                            move_count += 1;
+
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = target_square;
+                            self.TAGS[ply][move_count] = TAG_W_CAPTURE_QUEEN_PROMOTION;
+                            self.PIECES[ply][move_count] = WP;
+                            move_count += 1;
+
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = target_square;
+                            self.TAGS[ply][move_count] = TAG_W_CAPTURE_ROOK_PROMOTION;
+                            self.PIECES[ply][move_count] = WP;
+                            move_count += 1;
+                        } else {
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = target_square;
+                            self.TAGS[ply][move_count] = TAG_CAPTURE;
+                            self.PIECES[ply][move_count] = WP;
+                            move_count += 1;
                         }
-                        let bishop_attacks = self
-                            .get_bishop_attacks_fast(target_square, occupancy_without_black_king);
-                        if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
-                            continue;
+                    }
+
+                    if (constants::SQUARE_BBS[starting_square] & RANK_5_BITBOARD) != 0
+                        && self.EP != NO_SQUARE
+                        && (((constants::WHITE_PAWN_ATTACKS[starting_square]
+                            & constants::SQUARE_BBS[self.EP])
+                            & check_bitboard)
+                            & temp_pin_bitboard)
+                            != 0
+                    {
+                        if (self.PIECE_ARRAY[WK] & RANK_5_BITBOARD) == 0
+                        //if no king on rank 5
+                        {
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = self.EP;
+                            self.TAGS[ply][move_count] = TAG_WHITEEP;
+                            self.PIECES[ply][move_count] = WP;
+                            move_count += 1;
+                        } else if (self.PIECE_ARRAY[BR] & RANK_5_BITBOARD) == 0
+                            && (self.PIECE_ARRAY[BQ] & RANK_5_BITBOARD) == 0
+                        // if no b rook or queen on rank 5
+                        {
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = self.EP;
+                            self.TAGS[ply][move_count] = TAG_WHITEEP;
+                            self.PIECES[ply][move_count] = WP;
+                            move_count += 1;
+                        } else
+                        //wk and br or bq on rank 5
+                        {
+                            let mut occupancy_without_ep_pawns: u64 =
+                                combined_occupancies & (!constants::SQUARE_BBS[starting_square]);
+                            occupancy_without_ep_pawns &= !constants::SQUARE_BBS[self.EP + 8];
+
+                            let rook_attacks_from_king: u64 = self.get_rook_attacks_fast(
+                                white_king_position,
+                                occupancy_without_ep_pawns,
+                            );
+                            if (rook_attacks_from_king & self.PIECE_ARRAY[BR]) == 0
+                                && (rook_attacks_from_king & self.PIECE_ARRAY[BQ]) == 0
+                            {
+                                self.STARTING_SQUARES[ply][move_count] = starting_square;
+                                self.TARGET_SQUARES[ply][move_count] = self.EP;
+                                self.TAGS[ply][move_count] = TAG_WHITEEP;
+                                self.PIECES[ply][move_count] = WP;
+                                move_count += 1;
+                            }
                         }
-                        if (self.PIECE_ARRAY[WQ] & bishop_attacks) != 0 {
-                            continue;
+                    }
+                }
+
+                temp_bitboard = self.PIECE_ARRAY[WR];
+                while temp_bitboard != 0 {
+                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    temp_bitboard &= temp_bitboard - 1;
+
+                    temp_pin_bitboard = MAX_ULONG;
+                    if pin_number != 0 {
+                        for i in 0..pin_number {
+                            if self.PIN_ARRAY_SQUARES[i] == starting_square {
+                                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
+                                    [white_king_position][self.PIN_ARRAY_PIECES[i]];
+                            }
                         }
-                        let rook_attacks =
-                            self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
-                        if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WQ] & rook_attacks) != 0 {
-                            continue;
-                        }
+                    }
+
+                    let rook_attacks =
+                        self.get_rook_attacks_fast(starting_square, combined_occupancies);
+
+                    temp_attack =
+                        ((rook_attacks & black_occupancies) & check_bitboard) & temp_pin_bitboard;
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
                         self.TARGET_SQUARES[ply][move_count] = target_square;
                         self.TAGS[ply][move_count] = TAG_CAPTURE;
-                        self.PIECES[ply][move_count] = BK;
+                        self.PIECES[ply][move_count] = WR;
                         move_count += 1;
                     }
 
                     temp_attack =
-                        constants::KING_ATTACKS[black_king_position] & !combined_occupancies;
-
+                        ((rook_attacks & EMPTY_OCCUPANCIES) & check_bitboard) & temp_pin_bitboard;
                     while temp_attack != 0 {
                         target_square = self.bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
-
-                        if (self.PIECE_ARRAY[WP] & constants::WHITE_PAWN_ATTACKS[target_square])
-                            != 0
-                        {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WK] & constants::KING_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        let bishop_attacks = self
-                            .get_bishop_attacks_fast(target_square, occupancy_without_black_king);
-                        if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WQ] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        let rook_attacks =
-                            self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
-                        if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WQ] & rook_attacks) != 0 {
-                            continue;
-                        }
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
                         self.TARGET_SQUARES[ply][move_count] = target_square;
                         self.TAGS[ply][move_count] = TAG_NONE;
-                        self.PIECES[ply][move_count] = BK;
+                        self.PIECES[ply][move_count] = WR;
                         move_count += 1;
                     }
-                } else {
-                    if black_king_check_count == 0 {
-                        check_bitboard = MAX_ULONG;
+                }
+
+                temp_bitboard = self.PIECE_ARRAY[WB];
+                while temp_bitboard != 0 {
+                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    temp_bitboard &= temp_bitboard - 1;
+
+                    temp_pin_bitboard = MAX_ULONG;
+                    if pin_number != 0 {
+                        for i in 0..pin_number {
+                            if self.PIN_ARRAY_SQUARES[i] == starting_square {
+                                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
+                                    [white_king_position][self.PIN_ARRAY_PIECES[i]];
+                            }
+                        }
                     }
 
-                    temp_bitboard = self.PIECE_ARRAY[BP];
+                    let bishop_attacks: u64 =
+                        self.get_bishop_attacks_fast(starting_square, combined_occupancies);
 
-                    while temp_bitboard != 0 {
-                        starting_square = self.bitscan_forward_separate(temp_bitboard);
-                        temp_bitboard &= temp_bitboard - 1;
+                    temp_attack =
+                        ((bishop_attacks & black_occupancies) & check_bitboard) & temp_pin_bitboard;
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
 
-                        temp_pin_bitboard = MAX_ULONG;
-                        if pin_number != 0 {
-                            for i in 0..pin_number {
-                                if self.PIN_ARRAY_SQUARES[i] == starting_square {
-                                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
-                                        [black_king_position][self.PIN_ARRAY_PIECES[i]];
-                                }
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_CAPTURE;
+                        self.PIECES[ply][move_count] = WB;
+                        move_count += 1;
+                    }
+
+                    temp_attack =
+                        ((bishop_attacks & EMPTY_OCCUPANCIES) & check_bitboard) & temp_pin_bitboard;
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
+
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_NONE;
+                        self.PIECES[ply][move_count] = WB;
+                        move_count += 1;
+                    }
+                }
+
+                temp_bitboard = self.PIECE_ARRAY[WQ];
+                while temp_bitboard != 0 {
+                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    temp_bitboard &= temp_bitboard - 1;
+
+                    temp_pin_bitboard = MAX_ULONG;
+                    if pin_number != 0 {
+                        for i in 0..pin_number {
+                            if self.PIN_ARRAY_SQUARES[i] == starting_square {
+                                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
+                                    [white_king_position][self.PIN_ARRAY_PIECES[i]];
                             }
                         }
+                    }
 
-                        if (constants::SQUARE_BBS[starting_square + 8] & combined_occupancies) == 0
-                        //if up one square is empty
+                    let mut queen_attacks =
+                        self.get_rook_attacks_fast(starting_square, combined_occupancies);
+                    queen_attacks |=
+                        self.get_bishop_attacks_fast(starting_square, combined_occupancies);
+
+                    temp_attack =
+                        ((queen_attacks & black_occupancies) & check_bitboard) & temp_pin_bitboard;
+
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
+
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_CAPTURE;
+                        self.PIECES[ply][move_count] = WQ;
+                        move_count += 1;
+                    }
+
+                    temp_attack =
+                        ((queen_attacks & EMPTY_OCCUPANCIES) & check_bitboard) & temp_pin_bitboard;
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
+
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_NONE;
+                        self.PIECES[ply][move_count] = WQ;
+                        move_count += 1;
+                    }
+                }
+            }
+        } else {
+            //black move
+            let mut black_king_check_count: u8 = 0;
+            let black_king_position: usize = self.bitscan_forward_separate(self.PIECE_ARRAY[BK]);
+            //pawns
+            temp_bitboard =
+                self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[black_king_position];
+            if temp_bitboard != 0 {
+                let pawn_square = self.bitscan_forward_separate(temp_bitboard);
+                if check_bitboard == 0 {
+                    check_bitboard = constants::SQUARE_BBS[pawn_square];
+                }
+
+                black_king_check_count += 1;
+            }
+
+            //knights
+            temp_bitboard = self.PIECE_ARRAY[WN] & constants::KNIGHT_ATTACKS[black_king_position];
+            if temp_bitboard != 0 {
+                let knight_square: usize = self.bitscan_forward_separate(temp_bitboard);
+
+                check_bitboard = constants::SQUARE_BBS[knight_square];
+
+                black_king_check_count += 1;
+            }
+
+            //bishops
+            let bishop_attacks_checks: u64 =
+                self.get_bishop_attacks_fast(black_king_position, white_occupancies);
+            temp_bitboard = self.PIECE_ARRAY[WB] & bishop_attacks_checks;
+            while temp_bitboard != 0 {
+                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
+                    [piece_square]
+                    & black_occupancies;
+
+                if temp_pin_bitboard == 0 {
+                    if check_bitboard == 0 {
+                        check_bitboard =
+                            constants::INBETWEEN_BITBOARDS[black_king_position][piece_square];
+                    }
+                    black_king_check_count += 1;
+                } else {
+                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    temp_pin_bitboard &= temp_pin_bitboard - 1;
+
+                    if temp_pin_bitboard == 0 {
+                        self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
+                        self.PIN_ARRAY_PIECES[pin_number] = piece_square;
+                        pin_number += 1;
+                    }
+                }
+                temp_bitboard &= temp_bitboard - 1;
+            }
+
+            //queen
+            temp_bitboard = self.PIECE_ARRAY[WQ] & bishop_attacks_checks;
+            while temp_bitboard != 0 {
+                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
+                    [piece_square]
+                    & black_occupancies;
+
+                if temp_pin_bitboard == 0 {
+                    if check_bitboard == 0 {
+                        check_bitboard =
+                            constants::INBETWEEN_BITBOARDS[black_king_position][piece_square];
+                    }
+                    black_king_check_count += 1;
+                } else {
+                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    temp_pin_bitboard &= temp_pin_bitboard - 1;
+
+                    if temp_pin_bitboard == 0 {
+                        self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
+                        self.PIN_ARRAY_PIECES[pin_number] = piece_square;
+                        pin_number += 1;
+                    }
+                }
+                temp_bitboard &= temp_bitboard - 1;
+            }
+
+            //rook
+            let rook_attacks = self.get_rook_attacks_fast(black_king_position, white_occupancies);
+            temp_bitboard = self.PIECE_ARRAY[WR] & rook_attacks;
+            while temp_bitboard != 0 {
+                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
+                    [piece_square]
+                    & black_occupancies;
+
+                if temp_pin_bitboard == 0 {
+                    if check_bitboard == 0 {
+                        check_bitboard =
+                            constants::INBETWEEN_BITBOARDS[black_king_position][piece_square];
+                    }
+                    black_king_check_count += 1;
+                } else {
+                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    temp_pin_bitboard &= temp_pin_bitboard - 1;
+
+                    if temp_pin_bitboard == 0 {
+                        self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
+                        self.PIN_ARRAY_PIECES[pin_number] = piece_square;
+                        pin_number += 1;
+                    }
+                }
+                temp_bitboard &= temp_bitboard - 1;
+            }
+
+            //queen
+            temp_bitboard = self.PIECE_ARRAY[WQ] & rook_attacks;
+            while temp_bitboard != 0 {
+                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+
+                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
+                    [piece_square]
+                    & black_occupancies;
+
+                if temp_pin_bitboard == 0 {
+                    if check_bitboard == 0 {
+                        check_bitboard =
+                            constants::INBETWEEN_BITBOARDS[black_king_position][piece_square];
+                    }
+                    black_king_check_count += 1;
+                } else {
+                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    temp_pin_bitboard &= temp_pin_bitboard - 1;
+
+                    if temp_pin_bitboard == 0 {
+                        self.PIN_ARRAY_SQUARES[pin_number] = pinned_square;
+                        self.PIN_ARRAY_PIECES[pin_number] = piece_square;
+                        pin_number += 1;
+                    }
+                }
+                temp_bitboard &= temp_bitboard - 1;
+            }
+
+            if black_king_check_count > 1 {
+                let occupancy_without_black_king = combined_occupancies & (!self.PIECE_ARRAY[BK]);
+                temp_attack = constants::KING_ATTACKS[black_king_position] & white_occupancies;
+
+                temp_attack = constants::KING_ATTACKS[black_king_position] & white_occupancies;
+
+                while temp_attack != 0 {
+                    target_square = self.bitscan_forward_separate(temp_attack);
+                    temp_attack &= temp_attack - 1;
+
+                    if (self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WK] & constants::KING_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    let bishop_attacks =
+                        self.get_bishop_attacks_fast(target_square, occupancy_without_black_king);
+                    if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WQ] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    let rook_attacks =
+                        self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
+                    if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WQ] & rook_attacks) != 0 {
+                        continue;
+                    }
+
+                    self.STARTING_SQUARES[ply][move_count] = starting_square;
+                    self.TARGET_SQUARES[ply][move_count] = target_square;
+                    self.TAGS[ply][move_count] = TAG_CAPTURE;
+                    self.PIECES[ply][move_count] = BK;
+                    move_count += 1;
+                }
+
+                temp_attack = constants::KING_ATTACKS[black_king_position] & !combined_occupancies;
+
+                while temp_attack != 0 {
+                    target_square = self.bitscan_forward_separate(temp_attack);
+                    temp_attack &= temp_attack - 1;
+
+                    if (self.PIECE_ARRAY[WP] & constants::WHITE_PAWN_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WK] & constants::KING_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    let bishop_attacks =
+                        self.get_bishop_attacks_fast(target_square, occupancy_without_black_king);
+                    if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WQ] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    let rook_attacks =
+                        self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
+                    if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WQ] & rook_attacks) != 0 {
+                        continue;
+                    }
+
+                    self.STARTING_SQUARES[ply][move_count] = starting_square;
+                    self.TARGET_SQUARES[ply][move_count] = target_square;
+                    self.TAGS[ply][move_count] = TAG_NONE;
+                    self.PIECES[ply][move_count] = BK;
+                    move_count += 1;
+                }
+            } else {
+                if black_king_check_count == 0 {
+                    check_bitboard = MAX_ULONG;
+                }
+
+                temp_bitboard = self.PIECE_ARRAY[BP];
+
+                while temp_bitboard != 0 {
+                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    temp_bitboard &= temp_bitboard - 1;
+
+                    temp_pin_bitboard = MAX_ULONG;
+                    if pin_number != 0 {
+                        for i in 0..pin_number {
+                            if self.PIN_ARRAY_SQUARES[i] == starting_square {
+                                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
+                                    [black_king_position][self.PIN_ARRAY_PIECES[i]];
+                            }
+                        }
+                    }
+
+                    if (constants::SQUARE_BBS[starting_square + 8] & combined_occupancies) == 0
+                    //if up one square is empty
+                    {
+                        if ((constants::SQUARE_BBS[starting_square + 8] & check_bitboard)
+                            & temp_pin_bitboard)
+                            != 0
                         {
-                            if ((constants::SQUARE_BBS[starting_square + 8] & check_bitboard)
-                                & temp_pin_bitboard)
-                                != 0
-                            {
-                                if (constants::SQUARE_BBS[starting_square] & RANK_2_BITBOARD) != 0
-                                //if promotion
-                                {
-                                    self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = starting_square + 8;
-                                    self.TAGS[ply][move_count] = TAG_B_BISHOP_PROMOTION;
-                                    self.PIECES[ply][move_count] = BP;
-                                    move_count += 1;
-
-                                    self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = starting_square + 8;
-                                    self.TAGS[ply][move_count] = TAG_B_KNIGHT_PROMOTION;
-                                    self.PIECES[ply][move_count] = BP;
-                                    move_count += 1;
-
-                                    self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = starting_square + 8;
-                                    self.TAGS[ply][move_count] = TAG_B_ROOK_PROMOTION;
-                                    self.PIECES[ply][move_count] = BP;
-                                    move_count += 1;
-
-                                    self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = starting_square + 8;
-                                    self.TAGS[ply][move_count] = TAG_B_QUEEN_PROMOTION;
-                                    self.PIECES[ply][move_count] = BP;
-                                    move_count += 1;
-                                } else {
-                                    self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = starting_square + 8;
-                                    self.TAGS[ply][move_count] = TAG_NONE;
-                                    self.PIECES[ply][move_count] = BP;
-                                    move_count += 1;
-                                }
-                            }
-
-                            if (constants::SQUARE_BBS[starting_square] & RANK_7_BITBOARD) != 0 && ((constants::SQUARE_BBS[starting_square + 16] & check_bitboard)
-                                    & temp_pin_bitboard) != 0 && ((constants::SQUARE_BBS[starting_square + 16])
-                                        & combined_occupancies) == 0 {
-                                self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = starting_square + 16;
-                                self.TAGS[ply][move_count] = TAG_DOUBLE_PAWN_BLACK;
-                                self.PIECES[ply][move_count] = BP;
-                                move_count += 1;
-                            }
-                        }
-
-                        temp_attack = ((constants::BLACK_PAWN_ATTACKS[starting_square]
-                            & white_occupancies)
-                            & check_bitboard)
-                            & temp_pin_bitboard; //if black piece diagonal to pawn
-
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack); //find the bit
-                            temp_attack &= temp_attack - 1;
-
                             if (constants::SQUARE_BBS[starting_square] & RANK_2_BITBOARD) != 0
                             //if promotion
                             {
                                 self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = target_square;
-                                self.TAGS[ply][move_count] = TAG_B_CAPTURE_BISHOP_PROMOTION;
+                                self.TARGET_SQUARES[ply][move_count] = starting_square + 8;
+                                self.TAGS[ply][move_count] = TAG_B_BISHOP_PROMOTION;
                                 self.PIECES[ply][move_count] = BP;
                                 move_count += 1;
 
                                 self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = target_square;
-                                self.TAGS[ply][move_count] = TAG_B_CAPTURE_ROOK_PROMOTION;
+                                self.TARGET_SQUARES[ply][move_count] = starting_square + 8;
+                                self.TAGS[ply][move_count] = TAG_B_KNIGHT_PROMOTION;
                                 self.PIECES[ply][move_count] = BP;
                                 move_count += 1;
 
                                 self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = target_square;
-                                self.TAGS[ply][move_count] = TAG_B_CAPTURE_QUEEN_PROMOTION;
+                                self.TARGET_SQUARES[ply][move_count] = starting_square + 8;
+                                self.TAGS[ply][move_count] = TAG_B_ROOK_PROMOTION;
                                 self.PIECES[ply][move_count] = BP;
                                 move_count += 1;
 
                                 self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = target_square;
-                                self.TAGS[ply][move_count] = TAG_B_CAPTURE_KNIGHT_PROMOTION;
+                                self.TARGET_SQUARES[ply][move_count] = starting_square + 8;
+                                self.TAGS[ply][move_count] = TAG_B_QUEEN_PROMOTION;
                                 self.PIECES[ply][move_count] = BP;
                                 move_count += 1;
                             } else {
                                 self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = target_square;
-                                self.TAGS[ply][move_count] = TAG_CAPTURE;
+                                self.TARGET_SQUARES[ply][move_count] = starting_square + 8;
+                                self.TAGS[ply][move_count] = TAG_NONE;
                                 self.PIECES[ply][move_count] = BP;
                                 move_count += 1;
                             }
                         }
 
-                        if (constants::SQUARE_BBS[starting_square] & RANK_4_BITBOARD) != 0 && self.EP != NO_SQUARE && (((constants::BLACK_PAWN_ATTACKS[starting_square]
-                                    & constants::SQUARE_BBS[self.EP])
-                                    & check_bitboard)
-                                    & temp_pin_bitboard) != 0 {
-                            if (self.PIECE_ARRAY[BK] & RANK_4_BITBOARD) == 0
-                            //if no king on rank 5
+                        if (constants::SQUARE_BBS[starting_square] & RANK_7_BITBOARD) != 0
+                            && ((constants::SQUARE_BBS[starting_square + 16] & check_bitboard)
+                                & temp_pin_bitboard)
+                                != 0
+                            && ((constants::SQUARE_BBS[starting_square + 16])
+                                & combined_occupancies)
+                                == 0
+                        {
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = starting_square + 16;
+                            self.TAGS[ply][move_count] = TAG_DOUBLE_PAWN_BLACK;
+                            self.PIECES[ply][move_count] = BP;
+                            move_count += 1;
+                        }
+                    }
+
+                    temp_attack = ((constants::BLACK_PAWN_ATTACKS[starting_square]
+                        & white_occupancies)
+                        & check_bitboard)
+                        & temp_pin_bitboard; //if black piece diagonal to pawn
+
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack); //find the bit
+                        temp_attack &= temp_attack - 1;
+
+                        if (constants::SQUARE_BBS[starting_square] & RANK_2_BITBOARD) != 0
+                        //if promotion
+                        {
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = target_square;
+                            self.TAGS[ply][move_count] = TAG_B_CAPTURE_BISHOP_PROMOTION;
+                            self.PIECES[ply][move_count] = BP;
+                            move_count += 1;
+
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = target_square;
+                            self.TAGS[ply][move_count] = TAG_B_CAPTURE_ROOK_PROMOTION;
+                            self.PIECES[ply][move_count] = BP;
+                            move_count += 1;
+
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = target_square;
+                            self.TAGS[ply][move_count] = TAG_B_CAPTURE_QUEEN_PROMOTION;
+                            self.PIECES[ply][move_count] = BP;
+                            move_count += 1;
+
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = target_square;
+                            self.TAGS[ply][move_count] = TAG_B_CAPTURE_KNIGHT_PROMOTION;
+                            self.PIECES[ply][move_count] = BP;
+                            move_count += 1;
+                        } else {
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = target_square;
+                            self.TAGS[ply][move_count] = TAG_CAPTURE;
+                            self.PIECES[ply][move_count] = BP;
+                            move_count += 1;
+                        }
+                    }
+
+                    if (constants::SQUARE_BBS[starting_square] & RANK_4_BITBOARD) != 0
+                        && self.EP != NO_SQUARE
+                        && (((constants::BLACK_PAWN_ATTACKS[starting_square]
+                            & constants::SQUARE_BBS[self.EP])
+                            & check_bitboard)
+                            & temp_pin_bitboard)
+                            != 0
+                    {
+                        if (self.PIECE_ARRAY[BK] & RANK_4_BITBOARD) == 0
+                        //if no king on rank 5
+                        {
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = self.EP;
+                            self.TAGS[ply][move_count] = TAG_BLACKEP;
+                            self.PIECES[ply][move_count] = BP;
+                            move_count += 1;
+                        } else if (self.PIECE_ARRAY[WR] & RANK_4_BITBOARD) == 0
+                            && (self.PIECE_ARRAY[WQ] & RANK_4_BITBOARD) == 0
+                        // if no b rook or queen on rank 5
+                        {
+                            self.STARTING_SQUARES[ply][move_count] = starting_square;
+                            self.TARGET_SQUARES[ply][move_count] = self.EP;
+                            self.TAGS[ply][move_count] = TAG_BLACKEP;
+                            self.PIECES[ply][move_count] = BP;
+                            move_count += 1;
+                        } else
+                        //wk and br or bq on rank 5
+                        {
+                            let mut occupancy_without_ep_pawns: u64 =
+                                combined_occupancies & !constants::SQUARE_BBS[starting_square];
+                            occupancy_without_ep_pawns &= !constants::SQUARE_BBS[self.EP - 8];
+
+                            let rook_attacks_from_king = self.get_rook_attacks_fast(
+                                black_king_position,
+                                occupancy_without_ep_pawns,
+                            );
+                            if (rook_attacks_from_king & self.PIECE_ARRAY[WR]) == 0
+                                && (rook_attacks_from_king & self.PIECE_ARRAY[WQ]) == 0
                             {
                                 self.STARTING_SQUARES[ply][move_count] = starting_square;
                                 self.TARGET_SQUARES[ply][move_count] = self.EP;
                                 self.TAGS[ply][move_count] = TAG_BLACKEP;
                                 self.PIECES[ply][move_count] = BP;
                                 move_count += 1;
-                            } else if (self.PIECE_ARRAY[WR] & RANK_4_BITBOARD) == 0
-                                && (self.PIECE_ARRAY[WQ] & RANK_4_BITBOARD) == 0
-                            // if no b rook or queen on rank 5
-                            {
-                                self.STARTING_SQUARES[ply][move_count] = starting_square;
-                                self.TARGET_SQUARES[ply][move_count] = self.EP;
-                                self.TAGS[ply][move_count] = TAG_BLACKEP;
-                                self.PIECES[ply][move_count] = BP;
-                                move_count += 1;
-                            } else
-                            //wk and br or bq on rank 5
-                            {
-                                let mut occupancy_without_ep_pawns: u64 =
-                                    combined_occupancies
-                                        & !constants::SQUARE_BBS[starting_square];
-                                occupancy_without_ep_pawns &=
-                                    !constants::SQUARE_BBS[self.EP - 8];
+                            }
+                        }
+                    }
+                }
 
-                                let rook_attacks_from_king = self.get_rook_attacks_fast(
-                                    black_king_position,
-                                    occupancy_without_ep_pawns,
-                                );
-                                if (rook_attacks_from_king & self.PIECE_ARRAY[WR]) == 0 && (rook_attacks_from_king & self.PIECE_ARRAY[WQ]) == 0 {
-                                    self.STARTING_SQUARES[ply][move_count] =
-                                        starting_square;
-                                    self.TARGET_SQUARES[ply][move_count] = self.EP;
-                                    self.TAGS[ply][move_count] = TAG_BLACKEP;
-                                    self.PIECES[ply][move_count] = BP;
-                                    move_count += 1;
-                                }
+                temp_bitboard = self.PIECE_ARRAY[BN];
+
+                while temp_bitboard != 0 {
+                    starting_square = self.bitscan_forward_separate(temp_bitboard); //looks for the startingSquare
+                    temp_bitboard &= temp_bitboard - 1; //removes the knight from that square to not infinitely loop
+
+                    temp_pin_bitboard = MAX_ULONG;
+                    if pin_number != 0 {
+                        for i in 0..pin_number {
+                            if self.PIN_ARRAY_SQUARES[i] == starting_square {
+                                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
+                                    [black_king_position][self.PIN_ARRAY_PIECES[i]];
                             }
                         }
                     }
 
-                    temp_bitboard = self.PIECE_ARRAY[BN];
-
-                    while temp_bitboard != 0 {
-                        starting_square = self.bitscan_forward_separate(temp_bitboard); //looks for the startingSquare
-                        temp_bitboard &= temp_bitboard - 1; //removes the knight from that square to not infinitely loop
-
-                        temp_pin_bitboard = MAX_ULONG;
-                        if pin_number != 0 {
-                            for i in 0..pin_number {
-                                if self.PIN_ARRAY_SQUARES[i] == starting_square {
-                                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
-                                        [black_king_position][self.PIN_ARRAY_PIECES[i]];
-                                }
-                            }
-                        }
-
-                        temp_attack = ((constants::KNIGHT_ATTACKS[starting_square]
-                            & white_occupancies)
-                            & check_bitboard)
-                            & temp_pin_bitboard; //gets knight captures
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_CAPTURE;
-                            self.PIECES[ply][move_count] = BN;
-                            move_count += 1;
-                        }
-
-                        temp_attack = ((constants::KNIGHT_ATTACKS[starting_square]
-                            & (!combined_occupancies))
-                            & check_bitboard)
-                            & temp_pin_bitboard;
-
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_NONE;
-                            self.PIECES[ply][move_count] = BN;
-                            move_count += 1;
-                        }
-                    }
-
-                    temp_bitboard = self.PIECE_ARRAY[BB];
-                    while temp_bitboard != 0 {
-                        starting_square = self.bitscan_forward_separate(temp_bitboard);
-                        temp_bitboard &= temp_bitboard - 1;
-
-                        temp_pin_bitboard = MAX_ULONG;
-                        if pin_number != 0 {
-                            for i in 0..pin_number {
-                                if self.PIN_ARRAY_SQUARES[i] == starting_square {
-                                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
-                                        [black_king_position][self.PIN_ARRAY_PIECES[i]];
-                                }
-                            }
-                        }
-
-                        let bishop_attacks =
-                            self.get_bishop_attacks_fast(starting_square, combined_occupancies);
-
-                        temp_attack = ((bishop_attacks & white_occupancies) & check_bitboard)
-                            & temp_pin_bitboard;
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_CAPTURE;
-                            self.PIECES[ply][move_count] = BB;
-                            move_count += 1;
-                        }
-
-                        temp_attack = ((bishop_attacks & (!combined_occupancies)) & check_bitboard)
-                            & temp_pin_bitboard;
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_NONE;
-                            self.PIECES[ply][move_count] = BB;
-                            move_count += 1;
-                        }
-                    }
-
-                    temp_bitboard = self.PIECE_ARRAY[BR];
-                    while temp_bitboard != 0 {
-                        starting_square = self.bitscan_forward_separate(temp_bitboard);
-                        temp_bitboard &= temp_bitboard - 1;
-
-                        temp_pin_bitboard = MAX_ULONG;
-                        if pin_number != 0 {
-                            for i in 0..pin_number {
-                                if self.PIN_ARRAY_SQUARES[i] == starting_square {
-                                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
-                                        [black_king_position][self.PIN_ARRAY_PIECES[i]];
-                                }
-                            }
-                        }
-
-                        let rook_attacks =
-                            self.get_rook_attacks_fast(starting_square, combined_occupancies);
-
-                        temp_attack = ((rook_attacks & white_occupancies) & check_bitboard)
-                            & temp_pin_bitboard;
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_CAPTURE;
-                            self.PIECES[ply][move_count] = BR;
-                            move_count += 1;
-                        }
-
-                        temp_attack = ((rook_attacks & (!combined_occupancies)) & check_bitboard)
-                            & temp_pin_bitboard;
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_NONE;
-                            self.PIECES[ply][move_count] = BR;
-                            move_count += 1;
-                        }
-                    }
-
-                    temp_bitboard = self.PIECE_ARRAY[BQ];
-                    while temp_bitboard != 0 {
-                        starting_square = self.bitscan_forward_separate(temp_bitboard);
-                        temp_bitboard &= temp_bitboard - 1;
-
-                        temp_pin_bitboard = MAX_ULONG;
-                        if pin_number != 0 {
-                            for i in 0..pin_number {
-                                if self.PIN_ARRAY_SQUARES[i] == starting_square {
-                                    temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
-                                        [black_king_position][self.PIN_ARRAY_PIECES[i]];
-                                }
-                            }
-                        }
-
-                        let mut queen_attacks =
-                            self.get_rook_attacks_fast(starting_square, combined_occupancies);
-                        queen_attacks |=
-                            self.get_bishop_attacks_fast(starting_square, combined_occupancies);
-
-                        temp_attack = ((queen_attacks & white_occupancies) & check_bitboard)
-                            & temp_pin_bitboard;
-
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_CAPTURE;
-                            self.PIECES[ply][move_count] = BQ;
-                            move_count += 1;
-                        }
-
-                        temp_attack = ((queen_attacks & (!combined_occupancies)) & check_bitboard)
-                            & temp_pin_bitboard;
-                        while temp_attack != 0 {
-                            target_square = self.bitscan_forward_separate(temp_attack);
-                            temp_attack &= temp_attack - 1;
-
-                            self.STARTING_SQUARES[ply][move_count] = starting_square;
-                            self.TARGET_SQUARES[ply][move_count] = target_square;
-                            self.TAGS[ply][move_count] = TAG_NONE;
-                            self.PIECES[ply][move_count] = BQ;
-                            move_count += 1;
-                        }
-                    }
-
-                    temp_attack = constants::KING_ATTACKS[black_king_position] & white_occupancies; //gets knight captures
+                    temp_attack = ((constants::KNIGHT_ATTACKS[starting_square]
+                        & white_occupancies)
+                        & check_bitboard)
+                        & temp_pin_bitboard; //gets knight captures
                     while temp_attack != 0 {
                         target_square = self.bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
-                        if (self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[target_square])
-                            != 0
-                        {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WK] & constants::KING_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        let occupancy_without_black_king =
-                            combined_occupancies & (!self.PIECE_ARRAY[BK]);
-                        let bishop_attacks = self
-                            .get_bishop_attacks_fast(target_square, occupancy_without_black_king);
-                        if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WQ] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        let rook_attacks =
-                            self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
-                        if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WQ] & rook_attacks) != 0 {
-                            continue;
-                        }
-
-                        self.STARTING_SQUARES[ply][move_count] = black_king_position;
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
                         self.TARGET_SQUARES[ply][move_count] = target_square;
                         self.TAGS[ply][move_count] = TAG_CAPTURE;
-                        self.PIECES[ply][move_count] = BK;
+                        self.PIECES[ply][move_count] = BN;
                         move_count += 1;
                     }
 
-                    temp_attack = constants::KING_ATTACKS[black_king_position] & EMPTY_OCCUPANCIES; //get knight moves to emtpy squares
+                    temp_attack = ((constants::KNIGHT_ATTACKS[starting_square]
+                        & (!combined_occupancies))
+                        & check_bitboard)
+                        & temp_pin_bitboard;
 
                     while temp_attack != 0 {
                         target_square = self.bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
-                        if (self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[target_square])
-                            != 0
-                        {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WK] & constants::KING_ATTACKS[target_square]) != 0 {
-                            continue;
-                        }
-                        let occupancy_without_black_king =
-                            combined_occupancies & (!self.PIECE_ARRAY[BK]);
-                        let bishop_attacks = self
-                            .get_bishop_attacks_fast(target_square, occupancy_without_black_king);
-                        if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WQ] & bishop_attacks) != 0 {
-                            continue;
-                        }
-                        let rook_attacks =
-                            self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
-                        if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
-                            continue;
-                        }
-                        if (self.PIECE_ARRAY[WQ] & rook_attacks) != 0 {
-                            continue;
-                        }
-
-                        self.STARTING_SQUARES[ply][move_count] = black_king_position;
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
                         self.TARGET_SQUARES[ply][move_count] = target_square;
                         self.TAGS[ply][move_count] = TAG_NONE;
-                        self.PIECES[ply][move_count] = BK;
+                        self.PIECES[ply][move_count] = BN;
                         move_count += 1;
                     }
                 }
-                if black_king_check_count == 0 {
-                    if self.CASTLE_RIGHTS[BKS_CASTLE_RIGHTS] && black_king_position == E8 && (BKS_EMPTY_BITBOARD & combined_occupancies) == 0 && (self.PIECE_ARRAY[BR] & constants::SQUARE_BBS[H8]) != 0 && !self.Is_Square_Attacked_By_White_Global(
-                                        F8,
-                                        combined_occupancies,
-                                    ) && !self.Is_Square_Attacked_By_White_Global(
-                                            G8,
-                                            combined_occupancies,
-                                        ) {
-                        self.STARTING_SQUARES[ply][move_count] = E8;
-                        self.TARGET_SQUARES[ply][move_count] = G8;
-                        self.TAGS[ply][move_count] = TAG_BCASTLEKS;
-                        self.PIECES[ply][move_count] = BK;
+
+                temp_bitboard = self.PIECE_ARRAY[BB];
+                while temp_bitboard != 0 {
+                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    temp_bitboard &= temp_bitboard - 1;
+
+                    temp_pin_bitboard = MAX_ULONG;
+                    if pin_number != 0 {
+                        for i in 0..pin_number {
+                            if self.PIN_ARRAY_SQUARES[i] == starting_square {
+                                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
+                                    [black_king_position][self.PIN_ARRAY_PIECES[i]];
+                            }
+                        }
+                    }
+
+                    let bishop_attacks =
+                        self.get_bishop_attacks_fast(starting_square, combined_occupancies);
+
+                    temp_attack =
+                        ((bishop_attacks & white_occupancies) & check_bitboard) & temp_pin_bitboard;
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
+
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_CAPTURE;
+                        self.PIECES[ply][move_count] = BB;
                         move_count += 1;
                     }
-                    if self.CASTLE_RIGHTS[BQS_CASTLE_RIGHTS] && black_king_position == E8 && (BQS_EMPTY_BITBOARD & combined_occupancies) == 0 && (self.PIECE_ARRAY[BR] & constants::SQUARE_BBS[A8]) != 0 && !self.Is_Square_Attacked_By_White_Global(
-                                        C8,
-                                        combined_occupancies,
-                                    ) && !self.Is_Square_Attacked_By_White_Global(
-                                            D8,
-                                            combined_occupancies,
-                                        ) {
-                        self.STARTING_SQUARES[ply][move_count] = E8;
-                        self.TARGET_SQUARES[ply][move_count] = C8;
-                        self.TAGS[ply][move_count] = TAG_BCASTLEQS;
-                        self.PIECES[ply][move_count] = BK;
+
+                    temp_attack = ((bishop_attacks & (!combined_occupancies)) & check_bitboard)
+                        & temp_pin_bitboard;
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
+
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_NONE;
+                        self.PIECES[ply][move_count] = BB;
                         move_count += 1;
                     }
+                }
+
+                temp_bitboard = self.PIECE_ARRAY[BR];
+                while temp_bitboard != 0 {
+                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    temp_bitboard &= temp_bitboard - 1;
+
+                    temp_pin_bitboard = MAX_ULONG;
+                    if pin_number != 0 {
+                        for i in 0..pin_number {
+                            if self.PIN_ARRAY_SQUARES[i] == starting_square {
+                                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
+                                    [black_king_position][self.PIN_ARRAY_PIECES[i]];
+                            }
+                        }
+                    }
+
+                    let rook_attacks =
+                        self.get_rook_attacks_fast(starting_square, combined_occupancies);
+
+                    temp_attack =
+                        ((rook_attacks & white_occupancies) & check_bitboard) & temp_pin_bitboard;
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
+
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_CAPTURE;
+                        self.PIECES[ply][move_count] = BR;
+                        move_count += 1;
+                    }
+
+                    temp_attack = ((rook_attacks & (!combined_occupancies)) & check_bitboard)
+                        & temp_pin_bitboard;
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
+
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_NONE;
+                        self.PIECES[ply][move_count] = BR;
+                        move_count += 1;
+                    }
+                }
+
+                temp_bitboard = self.PIECE_ARRAY[BQ];
+                while temp_bitboard != 0 {
+                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    temp_bitboard &= temp_bitboard - 1;
+
+                    temp_pin_bitboard = MAX_ULONG;
+                    if pin_number != 0 {
+                        for i in 0..pin_number {
+                            if self.PIN_ARRAY_SQUARES[i] == starting_square {
+                                temp_pin_bitboard = constants::INBETWEEN_BITBOARDS
+                                    [black_king_position][self.PIN_ARRAY_PIECES[i]];
+                            }
+                        }
+                    }
+
+                    let mut queen_attacks =
+                        self.get_rook_attacks_fast(starting_square, combined_occupancies);
+                    queen_attacks |=
+                        self.get_bishop_attacks_fast(starting_square, combined_occupancies);
+
+                    temp_attack =
+                        ((queen_attacks & white_occupancies) & check_bitboard) & temp_pin_bitboard;
+
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
+
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_CAPTURE;
+                        self.PIECES[ply][move_count] = BQ;
+                        move_count += 1;
+                    }
+
+                    temp_attack = ((queen_attacks & (!combined_occupancies)) & check_bitboard)
+                        & temp_pin_bitboard;
+                    while temp_attack != 0 {
+                        target_square = self.bitscan_forward_separate(temp_attack);
+                        temp_attack &= temp_attack - 1;
+
+                        self.STARTING_SQUARES[ply][move_count] = starting_square;
+                        self.TARGET_SQUARES[ply][move_count] = target_square;
+                        self.TAGS[ply][move_count] = TAG_NONE;
+                        self.PIECES[ply][move_count] = BQ;
+                        move_count += 1;
+                    }
+                }
+
+                temp_attack = constants::KING_ATTACKS[black_king_position] & white_occupancies; //gets knight captures
+                while temp_attack != 0 {
+                    target_square = self.bitscan_forward_separate(temp_attack);
+                    temp_attack &= temp_attack - 1;
+
+                    if (self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WK] & constants::KING_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    let occupancy_without_black_king =
+                        combined_occupancies & (!self.PIECE_ARRAY[BK]);
+                    let bishop_attacks =
+                        self.get_bishop_attacks_fast(target_square, occupancy_without_black_king);
+                    if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WQ] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    let rook_attacks =
+                        self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
+                    if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WQ] & rook_attacks) != 0 {
+                        continue;
+                    }
+
+                    self.STARTING_SQUARES[ply][move_count] = black_king_position;
+                    self.TARGET_SQUARES[ply][move_count] = target_square;
+                    self.TAGS[ply][move_count] = TAG_CAPTURE;
+                    self.PIECES[ply][move_count] = BK;
+                    move_count += 1;
+                }
+
+                temp_attack = constants::KING_ATTACKS[black_king_position] & EMPTY_OCCUPANCIES; //get knight moves to emtpy squares
+
+                while temp_attack != 0 {
+                    target_square = self.bitscan_forward_separate(temp_attack);
+                    temp_attack &= temp_attack - 1;
+
+                    if (self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WN] & constants::KNIGHT_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WK] & constants::KING_ATTACKS[target_square]) != 0 {
+                        continue;
+                    }
+                    let occupancy_without_black_king =
+                        combined_occupancies & (!self.PIECE_ARRAY[BK]);
+                    let bishop_attacks =
+                        self.get_bishop_attacks_fast(target_square, occupancy_without_black_king);
+                    if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WQ] & bishop_attacks) != 0 {
+                        continue;
+                    }
+                    let rook_attacks =
+                        self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
+                    if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
+                        continue;
+                    }
+                    if (self.PIECE_ARRAY[WQ] & rook_attacks) != 0 {
+                        continue;
+                    }
+
+                    self.STARTING_SQUARES[ply][move_count] = black_king_position;
+                    self.TARGET_SQUARES[ply][move_count] = target_square;
+                    self.TAGS[ply][move_count] = TAG_NONE;
+                    self.PIECES[ply][move_count] = BK;
+                    move_count += 1;
                 }
             }
-
-            if depth == 1 {
-                return move_count;
-            }
-
-            let mut nodes: usize = 0;
-            //let mut prior_nodes: u64;
-            let copy_ep: usize = self.EP;
-            let mut copy_castle: [bool; 4] = [true, true, true, true];
-            copy_castle[0] = self.CASTLE_RIGHTS[0];
-            copy_castle[1] = self.CASTLE_RIGHTS[1];
-            copy_castle[2] = self.CASTLE_RIGHTS[2];
-            copy_castle[3] = self.CASTLE_RIGHTS[3];
-
-            for move_index in 0..move_count {
-                // println!("move_index: {}", move_index);
-
-                let starting_square: usize = self.STARTING_SQUARES[ply][move_index];
-                let target_square: usize = self.TARGET_SQUARES[ply][move_index];
-                let piece: usize = self.PIECES[ply][move_index];
-                let tag: usize = self.TAGS[ply][move_index];
-
-                let mut capture_index: usize = 0;
-
-                self.WHITE_TO_PLAY = !self.WHITE_TO_PLAY;
-
-                match tag {
-                    TAG_NONE => {
-                        //none
-                        self.PIECE_ARRAY[piece] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_CAPTURE => {
-                        //capture
-                        self.PIECE_ARRAY[piece] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        if piece <= WK {
-                            for i in BP..BK + 1 {
-                                if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0
-                                {
-                                    capture_index = i;
-                                    break;
-                                }
-                            }
-                            self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square]
-                        } else {
-                            //is black
-
-                            for i in WP..BP {
-                                if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0
-                                {
-                                    capture_index = i;
-                                    break;
-                                }
-                            }
-                            self.PIECE_ARRAY[capture_index] &=
-                                !constants::SQUARE_BBS[target_square];
-                        }
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_WHITEEP => {
-                        //white ep
-                        //move piece
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[WP] &= !constants::SQUARE_BBS[starting_square];
-                        //remove
-                        self.PIECE_ARRAY[BP] &= !constants::SQUARE_BBS[target_square + 8];
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_BLACKEP => {
-                        //black ep
-                        //move piece
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[BP] &= !constants::SQUARE_BBS[starting_square];
-                        //remove white pawn square up
-                        self.PIECE_ARRAY[WP] &= !constants::SQUARE_BBS[target_square - 8];
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_WCASTLEKS => {
-                        //WKS
-                        //white king
-                        self.PIECE_ARRAY[WK] |= constants::SQUARE_BBS[G1];
-                        self.PIECE_ARRAY[WK] &= !constants::SQUARE_BBS[E1];
-                        //white rook
-                        self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[F1];
-                        self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[H1];
-                        //occupancies
-                        self.CASTLE_RIGHTS[WKS_CASTLE_RIGHTS] = false;
-                        self.CASTLE_RIGHTS[WQS_CASTLE_RIGHTS] = false;
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_WCASTLEQS => {
-                        //WQS
-                        //white king
-                        self.PIECE_ARRAY[WK] |= constants::SQUARE_BBS[C1];
-                        self.PIECE_ARRAY[WK] &= !constants::SQUARE_BBS[E1];
-                        //white rook
-                        self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[D1];
-                        self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[A1];
-
-                        self.CASTLE_RIGHTS[WKS_CASTLE_RIGHTS] = false;
-                        self.CASTLE_RIGHTS[WQS_CASTLE_RIGHTS] = false;
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_BCASTLEKS => {
-                        //BKS
-                        //white king
-                        self.PIECE_ARRAY[BK] |= constants::SQUARE_BBS[G8];
-                        self.PIECE_ARRAY[BK] &= !constants::SQUARE_BBS[E8];
-                        //white rook
-                        self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[F8];
-                        self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[H8];
-                        self.CASTLE_RIGHTS[BKS_CASTLE_RIGHTS] = false;
-                        self.CASTLE_RIGHTS[BQS_CASTLE_RIGHTS] = false;
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_BCASTLEQS => {
-                        //BQS
-                        //white king
-                        self.PIECE_ARRAY[BK] |= constants::SQUARE_BBS[C8];
-                        self.PIECE_ARRAY[BK] &= !constants::SQUARE_BBS[E8];
-                        //white rook
-                        self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[D8];
-                        self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[A8];
-                        self.CASTLE_RIGHTS[BKS_CASTLE_RIGHTS] = false;
-                        self.CASTLE_RIGHTS[BQS_CASTLE_RIGHTS] = false;
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_B_KNIGHT_PROMOTION => {
-                        //BNPr
-                        self.PIECE_ARRAY[BN] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_B_BISHOP_PROMOTION => {
-                        //BBPr
-                        self.PIECE_ARRAY[BB] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_B_QUEEN_PROMOTION => {
-                        //BQPr
-                        self.PIECE_ARRAY[BQ] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_B_ROOK_PROMOTION => {
-                        //BRPr
-                        self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_W_KNIGHT_PROMOTION => {
-                        //WNPr
-                        self.PIECE_ARRAY[WN] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_W_BISHOP_PROMOTION => {
-                        //WBPr
-                        self.PIECE_ARRAY[WB] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_W_QUEEN_PROMOTION => {
-                        //WQPr
-                        self.PIECE_ARRAY[WQ] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_W_ROOK_PROMOTION => {
-                        //WRPr
-                        self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                    }
-                    TAG_B_CAPTURE_KNIGHT_PROMOTION => {
-                        //BNPrCAP
-                        self.PIECE_ARRAY[BN] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                        for i in WP..BP {
-                            if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
-                                capture_index = i;
-                                break;
-                            }
-                        }
-                        self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square]
-                    }
-                    TAG_B_CAPTURE_BISHOP_PROMOTION => {
-                        //BBPrCAP
-                        self.PIECE_ARRAY[BB] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-
-                        self.EP = NO_SQUARE;
-                        for i in WP..BP {
-                            if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
-                                capture_index = i;
-                                break;
-                            }
-                        }
-                        self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_B_CAPTURE_QUEEN_PROMOTION => {
-                        //BQPrCAP
-                        self.PIECE_ARRAY[BQ] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                        for i in WP..BP {
-                            if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
-                                capture_index = i;
-                                break;
-                            }
-                        }
-                        self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_B_CAPTURE_ROOK_PROMOTION => {
-                        //BRPrCAP
-                        self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                        for i in WP..BP {
-                            if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
-                                capture_index = i;
-                                break;
-                            }
-                        }
-                        self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_W_CAPTURE_KNIGHT_PROMOTION => {
-                        //WNPrCAP
-                        self.PIECE_ARRAY[WN] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                        for i in BP..BK + 1 {
-                            if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
-                                capture_index = i;
-                                break;
-                            }
-                        }
-                        self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square]
-                    }
-                    TAG_W_CAPTURE_BISHOP_PROMOTION => {
-                        //WBPrCAP
-                        self.PIECE_ARRAY[WB] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                        for i in BP..BK + 1 {
-                            if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
-                                capture_index = i;
-                                break;
-                            }
-                        }
-                        self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square]
-                    }
-                    TAG_W_CAPTURE_QUEEN_PROMOTION => {
-                        //WQPrCAP
-                        self.PIECE_ARRAY[WQ] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                        for i in BP..BK + 1 {
-                            if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
-                                capture_index = i;
-                                break;
-                            }
-                        }
-                        self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_W_CAPTURE_ROOK_PROMOTION => {
-                        //WRPrCAP
-                        self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = NO_SQUARE;
-                        for i in BP..BK + 1 {
-                            if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
-                                capture_index = i;
-                                break;
-                            }
-                        }
-                        self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_DOUBLE_PAWN_WHITE => {
-                        //WDouble
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[WP] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = target_square + 8;
-                    }
-                    TAG_DOUBLE_PAWN_BLACK => {
-                        //BDouble
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[BP] &= !constants::SQUARE_BBS[starting_square];
-                        self.EP = target_square - 8;
-                    }
-                    _ => {}
+            if black_king_check_count == 0 {
+                if self.CASTLE_RIGHTS[BKS_CASTLE_RIGHTS]
+                    && black_king_position == E8
+                    && (BKS_EMPTY_BITBOARD & combined_occupancies) == 0
+                    && (self.PIECE_ARRAY[BR] & constants::SQUARE_BBS[H8]) != 0
+                    && !self.Is_Square_Attacked_By_White_Global(F8, combined_occupancies)
+                    && !self.Is_Square_Attacked_By_White_Global(G8, combined_occupancies)
+                {
+                    self.STARTING_SQUARES[ply][move_count] = E8;
+                    self.TARGET_SQUARES[ply][move_count] = G8;
+                    self.TAGS[ply][move_count] = TAG_BCASTLEKS;
+                    self.PIECES[ply][move_count] = BK;
+                    move_count += 1;
                 }
-                if piece == WK {
+                if self.CASTLE_RIGHTS[BQS_CASTLE_RIGHTS]
+                    && black_king_position == E8
+                    && (BQS_EMPTY_BITBOARD & combined_occupancies) == 0
+                    && (self.PIECE_ARRAY[BR] & constants::SQUARE_BBS[A8]) != 0
+                    && !self.Is_Square_Attacked_By_White_Global(C8, combined_occupancies)
+                    && !self.Is_Square_Attacked_By_White_Global(D8, combined_occupancies)
+                {
+                    self.STARTING_SQUARES[ply][move_count] = E8;
+                    self.TARGET_SQUARES[ply][move_count] = C8;
+                    self.TAGS[ply][move_count] = TAG_BCASTLEQS;
+                    self.PIECES[ply][move_count] = BK;
+                    move_count += 1;
+                }
+            }
+        }
+
+        if depth == 1 {
+            return move_count;
+        }
+
+        let mut nodes: usize = 0;
+        //let mut prior_nodes: u64;
+        let copy_ep: usize = self.EP;
+        let mut copy_castle: [bool; 4] = [true, true, true, true];
+        copy_castle[0] = self.CASTLE_RIGHTS[0];
+        copy_castle[1] = self.CASTLE_RIGHTS[1];
+        copy_castle[2] = self.CASTLE_RIGHTS[2];
+        copy_castle[3] = self.CASTLE_RIGHTS[3];
+
+        for move_index in 0..move_count {
+            // println!("move_index: {}", move_index);
+
+            let starting_square: usize = self.STARTING_SQUARES[ply][move_index];
+            let target_square: usize = self.TARGET_SQUARES[ply][move_index];
+            let piece: usize = self.PIECES[ply][move_index];
+            let tag: usize = self.TAGS[ply][move_index];
+
+            let mut capture_index: usize = 0;
+
+            self.WHITE_TO_PLAY = !self.WHITE_TO_PLAY;
+
+            match tag {
+                TAG_NONE => {
+                    //none
+                    self.PIECE_ARRAY[piece] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                }
+                TAG_CAPTURE => {
+                    //capture
+                    self.PIECE_ARRAY[piece] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    if piece <= WK {
+                        for i in BP..BK + 1 {
+                            if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
+                                capture_index = i;
+                                break;
+                            }
+                        }
+                        self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square]
+                    } else {
+                        //is black
+
+                        for i in WP..BP {
+                            if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
+                                capture_index = i;
+                                break;
+                            }
+                        }
+                        self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square];
+                    }
+                    self.EP = NO_SQUARE;
+                }
+                TAG_WHITEEP => {
+                    //white ep
+                    //move piece
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[WP] &= !constants::SQUARE_BBS[starting_square];
+                    //remove
+                    self.PIECE_ARRAY[BP] &= !constants::SQUARE_BBS[target_square + 8];
+                    self.EP = NO_SQUARE;
+                }
+                TAG_BLACKEP => {
+                    //black ep
+                    //move piece
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[BP] &= !constants::SQUARE_BBS[starting_square];
+                    //remove white pawn square up
+                    self.PIECE_ARRAY[WP] &= !constants::SQUARE_BBS[target_square - 8];
+                    self.EP = NO_SQUARE;
+                }
+                TAG_WCASTLEKS => {
+                    //WKS
+                    //white king
+                    self.PIECE_ARRAY[WK] |= constants::SQUARE_BBS[G1];
+                    self.PIECE_ARRAY[WK] &= !constants::SQUARE_BBS[E1];
+                    //white rook
+                    self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[F1];
+                    self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[H1];
+                    //occupancies
                     self.CASTLE_RIGHTS[WKS_CASTLE_RIGHTS] = false;
                     self.CASTLE_RIGHTS[WQS_CASTLE_RIGHTS] = false;
-                } else if piece == BK {
+                    self.EP = NO_SQUARE;
+                }
+                TAG_WCASTLEQS => {
+                    //WQS
+                    //white king
+                    self.PIECE_ARRAY[WK] |= constants::SQUARE_BBS[C1];
+                    self.PIECE_ARRAY[WK] &= !constants::SQUARE_BBS[E1];
+                    //white rook
+                    self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[D1];
+                    self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[A1];
+
+                    self.CASTLE_RIGHTS[WKS_CASTLE_RIGHTS] = false;
+                    self.CASTLE_RIGHTS[WQS_CASTLE_RIGHTS] = false;
+                    self.EP = NO_SQUARE;
+                }
+                TAG_BCASTLEKS => {
+                    //BKS
+                    //white king
+                    self.PIECE_ARRAY[BK] |= constants::SQUARE_BBS[G8];
+                    self.PIECE_ARRAY[BK] &= !constants::SQUARE_BBS[E8];
+                    //white rook
+                    self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[F8];
+                    self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[H8];
                     self.CASTLE_RIGHTS[BKS_CASTLE_RIGHTS] = false;
                     self.CASTLE_RIGHTS[BQS_CASTLE_RIGHTS] = false;
-                } else if piece == WR {
-                    if self.CASTLE_RIGHTS[WKS_CASTLE_RIGHTS] && (self.PIECE_ARRAY[WR] & constants::SQUARE_BBS[H1]) == 0 {
-                        self.CASTLE_RIGHTS[WKS_CASTLE_RIGHTS] = false;
-                    }
-                    if self.CASTLE_RIGHTS[WQS_CASTLE_RIGHTS] && (self.PIECE_ARRAY[WR] & constants::SQUARE_BBS[A1]) == 0 {
-                        self.CASTLE_RIGHTS[WQS_CASTLE_RIGHTS] = false;
-                    }
-                } else if piece == BR {
-                    if self.CASTLE_RIGHTS[BKS_CASTLE_RIGHTS] && (self.PIECE_ARRAY[BR] & constants::SQUARE_BBS[H8]) == 0 {
-                        self.CASTLE_RIGHTS[BKS_CASTLE_RIGHTS] = false;
-                    }
-                    if self.CASTLE_RIGHTS[BQS_CASTLE_RIGHTS] && (self.PIECE_ARRAY[BR] & constants::SQUARE_BBS[A8]) == 0 {
-                        self.CASTLE_RIGHTS[BQS_CASTLE_RIGHTS] = false;
-                    }
+                    self.EP = NO_SQUARE;
                 }
-
-                // println!("calling perft_inline with depth: {:>3} and move_index: {:>3}", depth - 1, move_index);
-                nodes += self.perft_inline(depth - 1, ply + 1);
-
-                self.WHITE_TO_PLAY = !self.WHITE_TO_PLAY;
-
-                match tag {
-                    TAG_NONE => {
-                        //none
-                        self.PIECE_ARRAY[piece] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_CAPTURE => {
-                        //capture
-                        self.PIECE_ARRAY[piece] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[target_square];
-                        if piece <= WK {
-                            self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
-                        } else {
-                            //is black
-
-                            self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
+                TAG_BCASTLEQS => {
+                    //BQS
+                    //white king
+                    self.PIECE_ARRAY[BK] |= constants::SQUARE_BBS[C8];
+                    self.PIECE_ARRAY[BK] &= !constants::SQUARE_BBS[E8];
+                    //white rook
+                    self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[D8];
+                    self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[A8];
+                    self.CASTLE_RIGHTS[BKS_CASTLE_RIGHTS] = false;
+                    self.CASTLE_RIGHTS[BQS_CASTLE_RIGHTS] = false;
+                    self.EP = NO_SQUARE;
+                }
+                TAG_B_KNIGHT_PROMOTION => {
+                    //BNPr
+                    self.PIECE_ARRAY[BN] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                }
+                TAG_B_BISHOP_PROMOTION => {
+                    //BBPr
+                    self.PIECE_ARRAY[BB] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                }
+                TAG_B_QUEEN_PROMOTION => {
+                    //BQPr
+                    self.PIECE_ARRAY[BQ] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                }
+                TAG_B_ROOK_PROMOTION => {
+                    //BRPr
+                    self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                }
+                TAG_W_KNIGHT_PROMOTION => {
+                    //WNPr
+                    self.PIECE_ARRAY[WN] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                }
+                TAG_W_BISHOP_PROMOTION => {
+                    //WBPr
+                    self.PIECE_ARRAY[WB] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                }
+                TAG_W_QUEEN_PROMOTION => {
+                    //WQPr
+                    self.PIECE_ARRAY[WQ] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                }
+                TAG_W_ROOK_PROMOTION => {
+                    //WRPr
+                    self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                }
+                TAG_B_CAPTURE_KNIGHT_PROMOTION => {
+                    //BNPrCAP
+                    self.PIECE_ARRAY[BN] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                    for i in WP..BP {
+                        if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
+                            capture_index = i;
+                            break;
                         }
                     }
-                    TAG_WHITEEP => {
-                        //white ep
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[WP] &= !constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[target_square + 8];
-                    }
-                    TAG_BLACKEP => {
-                        //black ep
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[BP] &= !constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[target_square - 8];
-                    }
-                    TAG_WCASTLEKS => {
-                        //WKS
-                        //white king
-                        self.PIECE_ARRAY[WK] |= constants::SQUARE_BBS[E1];
-                        self.PIECE_ARRAY[WK] &= !constants::SQUARE_BBS[G1];
-                        //white rook
-                        self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[H1];
-                        self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[F1];
-                    }
-                    TAG_WCASTLEQS => {
-                        //WQS
-                        //white king
-                        self.PIECE_ARRAY[WK] |= constants::SQUARE_BBS[E1];
-                        self.PIECE_ARRAY[WK] &= !constants::SQUARE_BBS[C1];
-                        //white rook
-                        self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[A1];
-                        self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[D1];
-                    }
-                    TAG_BCASTLEKS => {
-                        //BKS
-                        //white king
-                        self.PIECE_ARRAY[BK] |= constants::SQUARE_BBS[E8];
-                        self.PIECE_ARRAY[BK] &= !constants::SQUARE_BBS[G8];
-                        //white rook
-                        self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[H8];
-                        self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[F8];
-                    }
-                    TAG_BCASTLEQS => {
-                        //BQS
-                        //white king
-                        self.PIECE_ARRAY[BK] |= constants::SQUARE_BBS[E8];
-                        self.PIECE_ARRAY[BK] &= !constants::SQUARE_BBS[C8];
-                        //white rook
-                        self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[A8];
-                        self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[D8];
-                    }
-                    TAG_B_KNIGHT_PROMOTION => {
-                        //BNPr
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[BN] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_B_BISHOP_PROMOTION => {
-                        //BBPr
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[BB] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_B_QUEEN_PROMOTION => {
-                        //BQPr
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[BQ] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_B_ROOK_PROMOTION => {
-                        //BRPr
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_W_KNIGHT_PROMOTION => {
-                        //WNPr
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[WN] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_W_BISHOP_PROMOTION => {
-                        //WBPr
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[WB] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_W_QUEEN_PROMOTION => {
-                        //WQPr
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[WQ] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_W_ROOK_PROMOTION => {
-                        //WRPr
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_B_CAPTURE_KNIGHT_PROMOTION => {
-                        //BNPrCAP
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[BN] &= !constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_B_CAPTURE_BISHOP_PROMOTION => {
-                        //BBPrCAP
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[BB] &= !constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_B_CAPTURE_QUEEN_PROMOTION => {
-                        //BQPrCAP
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[BQ] &= !constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_B_CAPTURE_ROOK_PROMOTION => {
-                        //BRPrCAP
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_W_CAPTURE_KNIGHT_PROMOTION => {
-                        //WNPrCAP
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[WN] &= !constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_W_CAPTURE_BISHOP_PROMOTION => {
-                        //WBPrCAP
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[WB] &= !constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_W_CAPTURE_QUEEN_PROMOTION => {
-                        //WQPrCAP
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[WQ] &= !constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_W_CAPTURE_ROOK_PROMOTION => {
-                        //WRPrCAP
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[target_square];
-                        self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_DOUBLE_PAWN_WHITE => {
-                        //WDouble
-                        self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[WP] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    TAG_DOUBLE_PAWN_BLACK => {
-                        //BDouble
-                        self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
-                        self.PIECE_ARRAY[BP] &= !constants::SQUARE_BBS[target_square];
-                    }
-                    _ => {}
+                    self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square]
                 }
+                TAG_B_CAPTURE_BISHOP_PROMOTION => {
+                    //BBPrCAP
+                    self.PIECE_ARRAY[BB] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
 
-                self.CASTLE_RIGHTS[0] = copy_castle[0];
-                self.CASTLE_RIGHTS[1] = copy_castle[1];
-                self.CASTLE_RIGHTS[2] = copy_castle[2];
-                self.CASTLE_RIGHTS[3] = copy_castle[3];
-                self.EP = copy_ep;
-
-                //if (epGlobal != NO_SQUARE)
-                //{
-                //    std::cout << "   ep: " << SQ_CHAR_X[epGlobal] << SQ_CHAR_Y[epGlobal] << '\n';
-                //}
-
-                //if (ply == 0)
-                //{
-                //PrMoveNoNL(startingSquare, targetSquare);
-                //print!(": {}\n", .{nodes - priorNodes});
-                //}
+                    self.EP = NO_SQUARE;
+                    for i in WP..BP {
+                        if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
+                            capture_index = i;
+                            break;
+                        }
+                    }
+                    self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_B_CAPTURE_QUEEN_PROMOTION => {
+                    //BQPrCAP
+                    self.PIECE_ARRAY[BQ] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                    for i in WP..BP {
+                        if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
+                            capture_index = i;
+                            break;
+                        }
+                    }
+                    self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_B_CAPTURE_ROOK_PROMOTION => {
+                    //BRPrCAP
+                    self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                    for i in WP..BP {
+                        if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
+                            capture_index = i;
+                            break;
+                        }
+                    }
+                    self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_W_CAPTURE_KNIGHT_PROMOTION => {
+                    //WNPrCAP
+                    self.PIECE_ARRAY[WN] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                    for i in BP..BK + 1 {
+                        if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
+                            capture_index = i;
+                            break;
+                        }
+                    }
+                    self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square]
+                }
+                TAG_W_CAPTURE_BISHOP_PROMOTION => {
+                    //WBPrCAP
+                    self.PIECE_ARRAY[WB] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                    for i in BP..BK + 1 {
+                        if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
+                            capture_index = i;
+                            break;
+                        }
+                    }
+                    self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square]
+                }
+                TAG_W_CAPTURE_QUEEN_PROMOTION => {
+                    //WQPrCAP
+                    self.PIECE_ARRAY[WQ] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                    for i in BP..BK + 1 {
+                        if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
+                            capture_index = i;
+                            break;
+                        }
+                    }
+                    self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_W_CAPTURE_ROOK_PROMOTION => {
+                    //WRPrCAP
+                    self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = NO_SQUARE;
+                    for i in BP..BK + 1 {
+                        if (self.PIECE_ARRAY[i] & constants::SQUARE_BBS[target_square]) != 0 {
+                            capture_index = i;
+                            break;
+                        }
+                    }
+                    self.PIECE_ARRAY[capture_index] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_DOUBLE_PAWN_WHITE => {
+                    //WDouble
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[WP] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = target_square + 8;
+                }
+                TAG_DOUBLE_PAWN_BLACK => {
+                    //BDouble
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[BP] &= !constants::SQUARE_BBS[starting_square];
+                    self.EP = target_square - 8;
+                }
+                _ => {}
+            }
+            if piece == WK {
+                self.CASTLE_RIGHTS[WKS_CASTLE_RIGHTS] = false;
+                self.CASTLE_RIGHTS[WQS_CASTLE_RIGHTS] = false;
+            } else if piece == BK {
+                self.CASTLE_RIGHTS[BKS_CASTLE_RIGHTS] = false;
+                self.CASTLE_RIGHTS[BQS_CASTLE_RIGHTS] = false;
+            } else if piece == WR {
+                if self.CASTLE_RIGHTS[WKS_CASTLE_RIGHTS]
+                    && (self.PIECE_ARRAY[WR] & constants::SQUARE_BBS[H1]) == 0
+                {
+                    self.CASTLE_RIGHTS[WKS_CASTLE_RIGHTS] = false;
+                }
+                if self.CASTLE_RIGHTS[WQS_CASTLE_RIGHTS]
+                    && (self.PIECE_ARRAY[WR] & constants::SQUARE_BBS[A1]) == 0
+                {
+                    self.CASTLE_RIGHTS[WQS_CASTLE_RIGHTS] = false;
+                }
+            } else if piece == BR {
+                if self.CASTLE_RIGHTS[BKS_CASTLE_RIGHTS]
+                    && (self.PIECE_ARRAY[BR] & constants::SQUARE_BBS[H8]) == 0
+                {
+                    self.CASTLE_RIGHTS[BKS_CASTLE_RIGHTS] = false;
+                }
+                if self.CASTLE_RIGHTS[BQS_CASTLE_RIGHTS]
+                    && (self.PIECE_ARRAY[BR] & constants::SQUARE_BBS[A8]) == 0
+                {
+                    self.CASTLE_RIGHTS[BQS_CASTLE_RIGHTS] = false;
+                }
             }
 
-            nodes
+            // println!("calling perft_inline with depth: {:>3} and move_index: {:>3}", depth - 1, move_index);
+            nodes += self.perft_inline(depth - 1, ply + 1);
+
+            self.WHITE_TO_PLAY = !self.WHITE_TO_PLAY;
+
+            match tag {
+                TAG_NONE => {
+                    //none
+                    self.PIECE_ARRAY[piece] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_CAPTURE => {
+                    //capture
+                    self.PIECE_ARRAY[piece] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[piece] &= !constants::SQUARE_BBS[target_square];
+                    if piece <= WK {
+                        self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
+                    } else {
+                        //is black
+
+                        self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
+                    }
+                }
+                TAG_WHITEEP => {
+                    //white ep
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[WP] &= !constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[target_square + 8];
+                }
+                TAG_BLACKEP => {
+                    //black ep
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[BP] &= !constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[target_square - 8];
+                }
+                TAG_WCASTLEKS => {
+                    //WKS
+                    //white king
+                    self.PIECE_ARRAY[WK] |= constants::SQUARE_BBS[E1];
+                    self.PIECE_ARRAY[WK] &= !constants::SQUARE_BBS[G1];
+                    //white rook
+                    self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[H1];
+                    self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[F1];
+                }
+                TAG_WCASTLEQS => {
+                    //WQS
+                    //white king
+                    self.PIECE_ARRAY[WK] |= constants::SQUARE_BBS[E1];
+                    self.PIECE_ARRAY[WK] &= !constants::SQUARE_BBS[C1];
+                    //white rook
+                    self.PIECE_ARRAY[WR] |= constants::SQUARE_BBS[A1];
+                    self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[D1];
+                }
+                TAG_BCASTLEKS => {
+                    //BKS
+                    //white king
+                    self.PIECE_ARRAY[BK] |= constants::SQUARE_BBS[E8];
+                    self.PIECE_ARRAY[BK] &= !constants::SQUARE_BBS[G8];
+                    //white rook
+                    self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[H8];
+                    self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[F8];
+                }
+                TAG_BCASTLEQS => {
+                    //BQS
+                    //white king
+                    self.PIECE_ARRAY[BK] |= constants::SQUARE_BBS[E8];
+                    self.PIECE_ARRAY[BK] &= !constants::SQUARE_BBS[C8];
+                    //white rook
+                    self.PIECE_ARRAY[BR] |= constants::SQUARE_BBS[A8];
+                    self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[D8];
+                }
+                TAG_B_KNIGHT_PROMOTION => {
+                    //BNPr
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[BN] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_B_BISHOP_PROMOTION => {
+                    //BBPr
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[BB] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_B_QUEEN_PROMOTION => {
+                    //BQPr
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[BQ] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_B_ROOK_PROMOTION => {
+                    //BRPr
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_W_KNIGHT_PROMOTION => {
+                    //WNPr
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[WN] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_W_BISHOP_PROMOTION => {
+                    //WBPr
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[WB] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_W_QUEEN_PROMOTION => {
+                    //WQPr
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[WQ] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_W_ROOK_PROMOTION => {
+                    //WRPr
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_B_CAPTURE_KNIGHT_PROMOTION => {
+                    //BNPrCAP
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[BN] &= !constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
+                }
+                TAG_B_CAPTURE_BISHOP_PROMOTION => {
+                    //BBPrCAP
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[BB] &= !constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
+                }
+                TAG_B_CAPTURE_QUEEN_PROMOTION => {
+                    //BQPrCAP
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[BQ] &= !constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
+                }
+                TAG_B_CAPTURE_ROOK_PROMOTION => {
+                    //BRPrCAP
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[BR] &= !constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
+                }
+                TAG_W_CAPTURE_KNIGHT_PROMOTION => {
+                    //WNPrCAP
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[WN] &= !constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
+                }
+                TAG_W_CAPTURE_BISHOP_PROMOTION => {
+                    //WBPrCAP
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[WB] &= !constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
+                }
+                TAG_W_CAPTURE_QUEEN_PROMOTION => {
+                    //WQPrCAP
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[WQ] &= !constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
+                }
+                TAG_W_CAPTURE_ROOK_PROMOTION => {
+                    //WRPrCAP
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[WR] &= !constants::SQUARE_BBS[target_square];
+                    self.PIECE_ARRAY[capture_index] |= constants::SQUARE_BBS[target_square];
+                }
+                TAG_DOUBLE_PAWN_WHITE => {
+                    //WDouble
+                    self.PIECE_ARRAY[WP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[WP] &= !constants::SQUARE_BBS[target_square];
+                }
+                TAG_DOUBLE_PAWN_BLACK => {
+                    //BDouble
+                    self.PIECE_ARRAY[BP] |= constants::SQUARE_BBS[starting_square];
+                    self.PIECE_ARRAY[BP] &= !constants::SQUARE_BBS[target_square];
+                }
+                _ => {}
+            }
+
+            self.CASTLE_RIGHTS[0] = copy_castle[0];
+            self.CASTLE_RIGHTS[1] = copy_castle[1];
+            self.CASTLE_RIGHTS[2] = copy_castle[2];
+            self.CASTLE_RIGHTS[3] = copy_castle[3];
+            self.EP = copy_ep;
+
+            //if (epGlobal != NO_SQUARE)
+            //{
+            //    std::cout << "   ep: " << SQ_CHAR_X[epGlobal] << SQ_CHAR_Y[epGlobal] << '\n';
+            //}
+
+            //if (ply == 0)
+            //{
+            //PrMoveNoNL(startingSquare, targetSquare);
+            //print!(": {}\n", .{nodes - priorNodes});
+            //}
         }
+
+        nodes
     }
     fn run_perft(&mut self, depth: i8) {
         let timestamp_start = Instant::now();
