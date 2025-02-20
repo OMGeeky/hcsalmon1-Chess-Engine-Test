@@ -189,7 +189,7 @@ mod consts {
 }
 use consts::*;
 impl Engine {
-    fn get_rook_attacks_fast(&mut self, starting_square: usize, mut occupancy: u64) -> u64 {
+    fn get_rook_attacks_fast( starting_square: usize, mut occupancy: u64) -> u64 {
         occupancy &= constants::ROOK_MASKS[starting_square];
         // Note: use of saturating_mul here since I think it is intended to ignore overflows
         occupancy = occupancy.saturating_mul(constants::ROOK_MAGIC_NUMBERS[starting_square]);
@@ -198,7 +198,7 @@ impl Engine {
         constants::ROOK_ATTACKS[starting_square][converted_occupancy]
     }
 
-    fn get_bishop_attacks_fast(&mut self, starting_square: usize, mut occupancy: u64) -> u64 {
+    fn get_bishop_attacks_fast(starting_square: usize, mut occupancy: u64) -> u64 {
         occupancy &= constants::BISHOP_MASKS[starting_square];
         // Note: use of saturating_mul here since I think it is intended to ignore overflows
         occupancy = occupancy.saturating_mul(constants::BISHOP_MAGIC_NUMBERS[starting_square]);
@@ -206,7 +206,7 @@ impl Engine {
         constants::BISHOP_ATTACKS[starting_square][occupancy as usize]
     }
 
-    fn bitscan_forward_separate(&mut self, bitboard: u64) -> usize {
+    fn bitscan_forward_separate( bitboard: u64) -> usize {
         let bitboard_combined: u64 = bitboard ^ (bitboard - 1);
         let calculation: u128 = 0x03f79d71b4cb0a89 * bitboard_combined as u128;
         let calc_truncated: u64 = calculation as u64;
@@ -214,7 +214,7 @@ impl Engine {
         constants::DEBRUIJN64[index]
     }
 
-    fn Is_Square_Attacked_By_Black_Global(&mut self, square: usize, occupancy: u64) -> bool {
+    fn Is_Square_Attacked_By_Black_Global(&self, square: usize, occupancy: u64) -> bool {
         if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[square]) != 0 {
             return true;
         }
@@ -224,14 +224,14 @@ impl Engine {
         if (self.PIECE_ARRAY[BK] & constants::KING_ATTACKS[square]) != 0 {
             return true;
         }
-        let bishopAttacks = self.get_bishop_attacks_fast(square, occupancy);
+        let bishopAttacks = Self::get_bishop_attacks_fast(square, occupancy);
         if (self.PIECE_ARRAY[BB] & bishopAttacks) != 0 {
             return true;
         }
         if (self.PIECE_ARRAY[BQ] & bishopAttacks) != 0 {
             return true;
         }
-        let rookAttacks = self.get_rook_attacks_fast(square, occupancy);
+        let rookAttacks = Self::get_rook_attacks_fast(square, occupancy);
         if (self.PIECE_ARRAY[BR] & rookAttacks) != 0 {
             return true;
         }
@@ -241,7 +241,7 @@ impl Engine {
         false
     }
 
-    fn Is_Square_Attacked_By_White_Global(&mut self, square: usize, occupancy: u64) -> bool {
+    fn Is_Square_Attacked_By_White_Global(& self, square: usize, occupancy: u64) -> bool {
         if (self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[square]) != 0 {
             return true;
         }
@@ -251,14 +251,14 @@ impl Engine {
         if (self.PIECE_ARRAY[WK] & constants::KING_ATTACKS[square]) != 0 {
             return true;
         }
-        let bishopAttacks = self.get_bishop_attacks_fast(square, occupancy);
+        let bishopAttacks = Self::get_bishop_attacks_fast(square, occupancy);
         if (self.PIECE_ARRAY[WB] & bishopAttacks) != 0 {
             return true;
         }
         if (self.PIECE_ARRAY[WQ] & bishopAttacks) != 0 {
             return true;
         }
-        let rookAttacks = self.get_rook_attacks_fast(square, occupancy);
+        let rookAttacks = Self::get_rook_attacks_fast(square, occupancy);
         if (self.PIECE_ARRAY[WR] & rookAttacks) != 0 {
             return true;
         }
@@ -268,16 +268,16 @@ impl Engine {
         false
     }
 
-    fn OutOfBounds(&mut self, input: usize) -> bool {
+    fn OutOfBounds( input: usize) -> bool {
         if input > 63 {
             return true;
         }
         false
     }
 
-    fn PrMoveNoNL(&mut self, starting_square: usize, target_square: usize) {
+    fn PrMoveNoNL( starting_square: usize, target_square: usize) {
         //starting
-        if self.OutOfBounds(starting_square) {
+        if Self::OutOfBounds(starting_square) {
             print!("{}", starting_square);
         } else {
             print!(
@@ -285,7 +285,7 @@ impl Engine {
                 SQ_CHAR_X[starting_square], SQ_CHAR_Y[starting_square]
             );
         }
-        if self.OutOfBounds(target_square) {
+        if Self::OutOfBounds(target_square) {
             print!("{}", target_square);
         } else {
             print!("{}{}", SQ_CHAR_X[target_square], SQ_CHAR_Y[target_square]);
@@ -314,20 +314,20 @@ impl Engine {
         self.PIECE_ARRAY[11] = 16;
     }
 
-    fn is_occupied(&mut self, bitboard: u64, square: usize) -> bool {
+    fn is_occupied( bitboard: u64, square: usize) -> bool {
         (bitboard & constants::SQUARE_BBS[square]) != 0
     }
 
-    fn get_occupied_index(&mut self, square: usize) -> usize {
+    fn get_occupied_index(&self, square: usize) -> usize {
         for i in 0..12 {
-            if self.is_occupied(self.PIECE_ARRAY[i], square) {
+            if Self::is_occupied(self.PIECE_ARRAY[i], square) {
                 return i;
             }
         }
         12
     }
 
-    fn fill_board_array(&mut self) -> [usize; 64] {
+    fn fill_board_array(&self) -> [usize; 64] {
         let mut board_array: [usize; 64] = [0; 64];
 
         for i in 0..64 {
@@ -336,7 +336,7 @@ impl Engine {
         board_array
     }
 
-    fn print_board(&mut self) {
+    fn print_board(& self) {
         const PIECE_NAMES: [u8; 13] = [
             b'P', b'N', b'B', b'R', b'Q', b'K', b'P', b'N', b'B', b'R', b'Q', b'K', b'_',
         ];
@@ -413,13 +413,13 @@ impl Engine {
 
         if self.WHITE_TO_PLAY {
             let mut white_king_check_count: usize = 0;
-            let white_king_position: usize = self.bitscan_forward_separate(self.PIECE_ARRAY[WK]);
+            let white_king_position: usize = Self::bitscan_forward_separate(self.PIECE_ARRAY[WK]);
 
             //pawns
             temp_bitboard =
                 self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[white_king_position];
             if temp_bitboard != 0 {
-                let pawn_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                let pawn_square: usize = Self::bitscan_forward_separate(temp_bitboard);
                 check_bitboard = constants::SQUARE_BBS[pawn_square];
 
                 white_king_check_count += 1;
@@ -428,7 +428,7 @@ impl Engine {
             //knights
             temp_bitboard = self.PIECE_ARRAY[BN] & constants::KNIGHT_ATTACKS[white_king_position];
             if temp_bitboard != 0 {
-                let knight_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                let knight_square: usize = Self::bitscan_forward_separate(temp_bitboard);
 
                 check_bitboard = constants::SQUARE_BBS[knight_square];
 
@@ -437,10 +437,10 @@ impl Engine {
 
             //bishops
             let bishop_attacks_checks: u64 =
-                self.get_bishop_attacks_fast(white_king_position, black_occupancies);
+                Self::get_bishop_attacks_fast(white_king_position, black_occupancies);
             temp_bitboard = self.PIECE_ARRAY[BB] & bishop_attacks_checks;
             while temp_bitboard != 0 {
-                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                let piece_square: usize = Self::bitscan_forward_separate(temp_bitboard);
                 temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
                     [piece_square]
                     & white_occupancies;
@@ -450,7 +450,7 @@ impl Engine {
                         constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
                     white_king_check_count += 1;
                 } else {
-                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    let pinned_square: usize = Self::bitscan_forward_separate(temp_pin_bitboard);
                     temp_pin_bitboard &= temp_pin_bitboard - 1;
 
                     if temp_pin_bitboard == 0 {
@@ -465,7 +465,7 @@ impl Engine {
             //queen
             temp_bitboard = self.PIECE_ARRAY[BQ] & bishop_attacks_checks;
             while temp_bitboard != 0 {
-                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                let piece_square: usize = Self::bitscan_forward_separate(temp_bitboard);
 
                 temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
                     [piece_square]
@@ -476,7 +476,7 @@ impl Engine {
                         constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
                     white_king_check_count += 1;
                 } else {
-                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    let pinned_square: usize = Self::bitscan_forward_separate(temp_pin_bitboard);
                     temp_pin_bitboard &= temp_pin_bitboard - 1;
 
                     if temp_pin_bitboard == 0 {
@@ -490,10 +490,10 @@ impl Engine {
 
             //rook
             let rook_attacks: u64 =
-                self.get_rook_attacks_fast(white_king_position, black_occupancies);
+                Self::get_rook_attacks_fast(white_king_position, black_occupancies);
             temp_bitboard = self.PIECE_ARRAY[BR] & rook_attacks;
             while temp_bitboard != 0 {
-                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                let piece_square: usize = Self::bitscan_forward_separate(temp_bitboard);
                 temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
                     [piece_square]
                     & white_occupancies;
@@ -503,7 +503,7 @@ impl Engine {
                         constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
                     white_king_check_count += 1;
                 } else {
-                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    let pinned_square: usize = Self::bitscan_forward_separate(temp_pin_bitboard);
                     temp_pin_bitboard &= temp_pin_bitboard - 1;
 
                     if temp_pin_bitboard == 0 {
@@ -518,7 +518,7 @@ impl Engine {
             //queen
             temp_bitboard = self.PIECE_ARRAY[BQ] & rook_attacks;
             while temp_bitboard != 0 {
-                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                let piece_square: usize = Self::bitscan_forward_separate(temp_bitboard);
                 temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[white_king_position]
                     [piece_square]
                     & white_occupancies;
@@ -528,7 +528,7 @@ impl Engine {
                         constants::INBETWEEN_BITBOARDS[white_king_position][piece_square];
                     white_king_check_count += 1;
                 } else {
-                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    let pinned_square: usize = Self::bitscan_forward_separate(temp_pin_bitboard);
                     temp_pin_bitboard &= temp_pin_bitboard - 1;
 
                     if temp_pin_bitboard == 0 {
@@ -546,7 +546,7 @@ impl Engine {
                 temp_attack = constants::KING_ATTACKS[white_king_position];
                 temp_empty = temp_attack & EMPTY_OCCUPANCIES;
                 while temp_empty != 0 {
-                    target_square = self.bitscan_forward_separate(temp_empty);
+                    target_square = Self::bitscan_forward_separate(temp_empty);
                     temp_empty &= temp_empty - 1;
 
                     if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square]) != 0 {
@@ -559,7 +559,7 @@ impl Engine {
                         continue;
                     }
                     let bishop_attacks: u64 =
-                        self.get_bishop_attacks_fast(target_square, occupancies_without_white_king);
+                        Self::get_bishop_attacks_fast(target_square, occupancies_without_white_king);
                     if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
                         continue;
                     }
@@ -567,7 +567,7 @@ impl Engine {
                         continue;
                     }
                     let rook_attacks: u64 =
-                        self.get_rook_attacks_fast(target_square, occupancies_without_white_king);
+                        Self::get_rook_attacks_fast(target_square, occupancies_without_white_king);
                     if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
                         continue;
                     }
@@ -585,7 +585,7 @@ impl Engine {
                 //captures
                 temp_captures = temp_attack & black_occupancies;
                 while temp_captures != 0 {
-                    target_square = self.bitscan_forward_separate(temp_captures);
+                    target_square = Self::bitscan_forward_separate(temp_captures);
                     temp_captures &= temp_captures - 1;
 
                     if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square]) != 0 {
@@ -598,7 +598,7 @@ impl Engine {
                         continue;
                     }
                     let bishop_attacks: u64 =
-                        self.get_bishop_attacks_fast(target_square, occupancies_without_white_king);
+                        Self::get_bishop_attacks_fast(target_square, occupancies_without_white_king);
                     if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
                         continue;
                     }
@@ -606,7 +606,7 @@ impl Engine {
                         continue;
                     }
                     let rook_attacks: u64 =
-                        self.get_rook_attacks_fast(target_square, occupancies_without_white_king);
+                        Self::get_rook_attacks_fast(target_square, occupancies_without_white_king);
                     if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
                         continue;
                     }
@@ -630,7 +630,7 @@ impl Engine {
                 temp_attack = constants::KING_ATTACKS[white_king_position];
                 temp_empty = temp_attack & EMPTY_OCCUPANCIES;
                 while temp_empty != 0 {
-                    target_square = self.bitscan_forward_separate(temp_empty);
+                    target_square = Self::bitscan_forward_separate(temp_empty);
                     temp_empty &= temp_empty - 1;
 
                     if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square]) != 0 {
@@ -643,7 +643,7 @@ impl Engine {
                         continue;
                     }
                     let bishop_attacks: u64 =
-                        self.get_bishop_attacks_fast(target_square, occupancies_without_white_king);
+                        Self::get_bishop_attacks_fast(target_square, occupancies_without_white_king);
                     if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
                         continue;
                     }
@@ -651,7 +651,7 @@ impl Engine {
                         continue;
                     }
                     let rook_attacks: u64 =
-                        self.get_rook_attacks_fast(target_square, occupancies_without_white_king);
+                        Self::get_rook_attacks_fast(target_square, occupancies_without_white_king);
                     if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
                         continue;
                     }
@@ -669,7 +669,7 @@ impl Engine {
                 //captures
                 temp_captures = temp_attack & black_occupancies;
                 while temp_captures != 0 {
-                    target_square = self.bitscan_forward_separate(temp_captures);
+                    target_square = Self::bitscan_forward_separate(temp_captures);
                     temp_captures &= temp_captures - 1;
 
                     if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[target_square]) != 0 {
@@ -682,7 +682,7 @@ impl Engine {
                         continue;
                     }
                     let bishop_attacks: u64 =
-                        self.get_bishop_attacks_fast(target_square, occupancies_without_white_king);
+                        Self::get_bishop_attacks_fast(target_square, occupancies_without_white_king);
                     if (self.PIECE_ARRAY[BB] & bishop_attacks) != 0 {
                         continue;
                     }
@@ -690,7 +690,7 @@ impl Engine {
                         continue;
                     }
                     let rook_attacks: u64 =
-                        self.get_rook_attacks_fast(target_square, occupancies_without_white_king);
+                        Self::get_rook_attacks_fast(target_square, occupancies_without_white_king);
                     if (self.PIECE_ARRAY[BR] & rook_attacks) != 0 {
                         continue;
                     }
@@ -737,7 +737,7 @@ impl Engine {
                 temp_bitboard = self.PIECE_ARRAY[WN];
 
                 while temp_bitboard != 0 {
-                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    starting_square = Self::bitscan_forward_separate(temp_bitboard);
                     temp_bitboard &= temp_bitboard - 1; //removes the knight from that square to not infinitely loop
 
                     temp_pin_bitboard = MAX_ULONG;
@@ -755,7 +755,7 @@ impl Engine {
                         & check_bitboard)
                         & temp_pin_bitboard; //gets knight captures
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -771,7 +771,7 @@ impl Engine {
                         & temp_pin_bitboard;
 
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -785,7 +785,7 @@ impl Engine {
                 temp_bitboard = self.PIECE_ARRAY[WP];
 
                 while temp_bitboard != 0 {
-                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    starting_square = Self::bitscan_forward_separate(temp_bitboard);
                     temp_bitboard &= temp_bitboard - 1;
 
                     temp_pin_bitboard = MAX_ULONG;
@@ -866,7 +866,7 @@ impl Engine {
                         & temp_pin_bitboard; //if black piece diagonal to pawn
 
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         if (constants::SQUARE_BBS[starting_square] & RANK_7_BITBOARD) != 0
@@ -936,7 +936,7 @@ impl Engine {
                                 combined_occupancies & (!constants::SQUARE_BBS[starting_square]);
                             occupancy_without_ep_pawns &= !constants::SQUARE_BBS[self.EP + 8];
 
-                            let rook_attacks_from_king: u64 = self.get_rook_attacks_fast(
+                            let rook_attacks_from_king: u64 = Self::get_rook_attacks_fast(
                                 white_king_position,
                                 occupancy_without_ep_pawns,
                             );
@@ -955,7 +955,7 @@ impl Engine {
 
                 temp_bitboard = self.PIECE_ARRAY[WR];
                 while temp_bitboard != 0 {
-                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    starting_square = Self::bitscan_forward_separate(temp_bitboard);
                     temp_bitboard &= temp_bitboard - 1;
 
                     temp_pin_bitboard = MAX_ULONG;
@@ -969,12 +969,12 @@ impl Engine {
                     }
 
                     let rook_attacks =
-                        self.get_rook_attacks_fast(starting_square, combined_occupancies);
+                        Self::get_rook_attacks_fast(starting_square, combined_occupancies);
 
                     temp_attack =
                         ((rook_attacks & black_occupancies) & check_bitboard) & temp_pin_bitboard;
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -987,7 +987,7 @@ impl Engine {
                     temp_attack =
                         ((rook_attacks & EMPTY_OCCUPANCIES) & check_bitboard) & temp_pin_bitboard;
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1000,7 +1000,7 @@ impl Engine {
 
                 temp_bitboard = self.PIECE_ARRAY[WB];
                 while temp_bitboard != 0 {
-                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    starting_square = Self::bitscan_forward_separate(temp_bitboard);
                     temp_bitboard &= temp_bitboard - 1;
 
                     temp_pin_bitboard = MAX_ULONG;
@@ -1014,12 +1014,12 @@ impl Engine {
                     }
 
                     let bishop_attacks: u64 =
-                        self.get_bishop_attacks_fast(starting_square, combined_occupancies);
+                        Self::get_bishop_attacks_fast(starting_square, combined_occupancies);
 
                     temp_attack =
                         ((bishop_attacks & black_occupancies) & check_bitboard) & temp_pin_bitboard;
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1032,7 +1032,7 @@ impl Engine {
                     temp_attack =
                         ((bishop_attacks & EMPTY_OCCUPANCIES) & check_bitboard) & temp_pin_bitboard;
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1045,7 +1045,7 @@ impl Engine {
 
                 temp_bitboard = self.PIECE_ARRAY[WQ];
                 while temp_bitboard != 0 {
-                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    starting_square = Self::bitscan_forward_separate(temp_bitboard);
                     temp_bitboard &= temp_bitboard - 1;
 
                     temp_pin_bitboard = MAX_ULONG;
@@ -1059,15 +1059,15 @@ impl Engine {
                     }
 
                     let mut queen_attacks =
-                        self.get_rook_attacks_fast(starting_square, combined_occupancies);
+                        Self::get_rook_attacks_fast(starting_square, combined_occupancies);
                     queen_attacks |=
-                        self.get_bishop_attacks_fast(starting_square, combined_occupancies);
+                        Self::get_bishop_attacks_fast(starting_square, combined_occupancies);
 
                     temp_attack =
                         ((queen_attacks & black_occupancies) & check_bitboard) & temp_pin_bitboard;
 
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1080,7 +1080,7 @@ impl Engine {
                     temp_attack =
                         ((queen_attacks & EMPTY_OCCUPANCIES) & check_bitboard) & temp_pin_bitboard;
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1094,12 +1094,12 @@ impl Engine {
         } else {
             //black move
             let mut black_king_check_count: u8 = 0;
-            let black_king_position: usize = self.bitscan_forward_separate(self.PIECE_ARRAY[BK]);
+            let black_king_position: usize = Self::bitscan_forward_separate(self.PIECE_ARRAY[BK]);
             //pawns
             temp_bitboard =
                 self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[black_king_position];
             if temp_bitboard != 0 {
-                let pawn_square = self.bitscan_forward_separate(temp_bitboard);
+                let pawn_square = Self::bitscan_forward_separate(temp_bitboard);
                 if check_bitboard == 0 {
                     check_bitboard = constants::SQUARE_BBS[pawn_square];
                 }
@@ -1110,7 +1110,7 @@ impl Engine {
             //knights
             temp_bitboard = self.PIECE_ARRAY[WN] & constants::KNIGHT_ATTACKS[black_king_position];
             if temp_bitboard != 0 {
-                let knight_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                let knight_square: usize = Self::bitscan_forward_separate(temp_bitboard);
 
                 check_bitboard = constants::SQUARE_BBS[knight_square];
 
@@ -1119,10 +1119,10 @@ impl Engine {
 
             //bishops
             let bishop_attacks_checks: u64 =
-                self.get_bishop_attacks_fast(black_king_position, white_occupancies);
+                Self::get_bishop_attacks_fast(black_king_position, white_occupancies);
             temp_bitboard = self.PIECE_ARRAY[WB] & bishop_attacks_checks;
             while temp_bitboard != 0 {
-                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                let piece_square: usize = Self::bitscan_forward_separate(temp_bitboard);
                 temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
                     [piece_square]
                     & black_occupancies;
@@ -1134,7 +1134,7 @@ impl Engine {
                     }
                     black_king_check_count += 1;
                 } else {
-                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    let pinned_square: usize = Self::bitscan_forward_separate(temp_pin_bitboard);
                     temp_pin_bitboard &= temp_pin_bitboard - 1;
 
                     if temp_pin_bitboard == 0 {
@@ -1149,7 +1149,7 @@ impl Engine {
             //queen
             temp_bitboard = self.PIECE_ARRAY[WQ] & bishop_attacks_checks;
             while temp_bitboard != 0 {
-                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                let piece_square: usize = Self::bitscan_forward_separate(temp_bitboard);
                 temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
                     [piece_square]
                     & black_occupancies;
@@ -1161,7 +1161,7 @@ impl Engine {
                     }
                     black_king_check_count += 1;
                 } else {
-                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    let pinned_square: usize = Self::bitscan_forward_separate(temp_pin_bitboard);
                     temp_pin_bitboard &= temp_pin_bitboard - 1;
 
                     if temp_pin_bitboard == 0 {
@@ -1174,10 +1174,10 @@ impl Engine {
             }
 
             //rook
-            let rook_attacks = self.get_rook_attacks_fast(black_king_position, white_occupancies);
+            let rook_attacks = Self::get_rook_attacks_fast(black_king_position, white_occupancies);
             temp_bitboard = self.PIECE_ARRAY[WR] & rook_attacks;
             while temp_bitboard != 0 {
-                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                let piece_square: usize = Self::bitscan_forward_separate(temp_bitboard);
                 temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
                     [piece_square]
                     & black_occupancies;
@@ -1189,7 +1189,7 @@ impl Engine {
                     }
                     black_king_check_count += 1;
                 } else {
-                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    let pinned_square: usize = Self::bitscan_forward_separate(temp_pin_bitboard);
                     temp_pin_bitboard &= temp_pin_bitboard - 1;
 
                     if temp_pin_bitboard == 0 {
@@ -1204,7 +1204,7 @@ impl Engine {
             //queen
             temp_bitboard = self.PIECE_ARRAY[WQ] & rook_attacks;
             while temp_bitboard != 0 {
-                let piece_square: usize = self.bitscan_forward_separate(temp_bitboard);
+                let piece_square: usize = Self::bitscan_forward_separate(temp_bitboard);
 
                 temp_pin_bitboard = constants::INBETWEEN_BITBOARDS[black_king_position]
                     [piece_square]
@@ -1217,7 +1217,7 @@ impl Engine {
                     }
                     black_king_check_count += 1;
                 } else {
-                    let pinned_square: usize = self.bitscan_forward_separate(temp_pin_bitboard);
+                    let pinned_square: usize = Self::bitscan_forward_separate(temp_pin_bitboard);
                     temp_pin_bitboard &= temp_pin_bitboard - 1;
 
                     if temp_pin_bitboard == 0 {
@@ -1236,7 +1236,7 @@ impl Engine {
                 temp_attack = constants::KING_ATTACKS[black_king_position] & white_occupancies;
 
                 while temp_attack != 0 {
-                    target_square = self.bitscan_forward_separate(temp_attack);
+                    target_square = Self::bitscan_forward_separate(temp_attack);
                     temp_attack &= temp_attack - 1;
 
                     if (self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[target_square]) != 0 {
@@ -1249,7 +1249,7 @@ impl Engine {
                         continue;
                     }
                     let bishop_attacks =
-                        self.get_bishop_attacks_fast(target_square, occupancy_without_black_king);
+                        Self::get_bishop_attacks_fast(target_square, occupancy_without_black_king);
                     if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
                         continue;
                     }
@@ -1257,7 +1257,7 @@ impl Engine {
                         continue;
                     }
                     let rook_attacks =
-                        self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
+                        Self::get_rook_attacks_fast(target_square, occupancy_without_black_king);
                     if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
                         continue;
                     }
@@ -1275,7 +1275,7 @@ impl Engine {
                 temp_attack = constants::KING_ATTACKS[black_king_position] & !combined_occupancies;
 
                 while temp_attack != 0 {
-                    target_square = self.bitscan_forward_separate(temp_attack);
+                    target_square = Self::bitscan_forward_separate(temp_attack);
                     temp_attack &= temp_attack - 1;
 
                     if (self.PIECE_ARRAY[WP] & constants::WHITE_PAWN_ATTACKS[target_square]) != 0 {
@@ -1288,7 +1288,7 @@ impl Engine {
                         continue;
                     }
                     let bishop_attacks =
-                        self.get_bishop_attacks_fast(target_square, occupancy_without_black_king);
+                        Self::get_bishop_attacks_fast(target_square, occupancy_without_black_king);
                     if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
                         continue;
                     }
@@ -1296,7 +1296,7 @@ impl Engine {
                         continue;
                     }
                     let rook_attacks =
-                        self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
+                        Self::get_rook_attacks_fast(target_square, occupancy_without_black_king);
                     if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
                         continue;
                     }
@@ -1318,7 +1318,7 @@ impl Engine {
                 temp_bitboard = self.PIECE_ARRAY[BP];
 
                 while temp_bitboard != 0 {
-                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    starting_square = Self::bitscan_forward_separate(temp_bitboard);
                     temp_bitboard &= temp_bitboard - 1;
 
                     temp_pin_bitboard = MAX_ULONG;
@@ -1395,7 +1395,7 @@ impl Engine {
                         & temp_pin_bitboard; //if black piece diagonal to pawn
 
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack); //find the bit
+                        target_square = Self::bitscan_forward_separate(temp_attack); //find the bit
                         temp_attack &= temp_attack - 1;
 
                         if (constants::SQUARE_BBS[starting_square] & RANK_2_BITBOARD) != 0
@@ -1465,7 +1465,7 @@ impl Engine {
                                 combined_occupancies & !constants::SQUARE_BBS[starting_square];
                             occupancy_without_ep_pawns &= !constants::SQUARE_BBS[self.EP - 8];
 
-                            let rook_attacks_from_king = self.get_rook_attacks_fast(
+                            let rook_attacks_from_king = Self::get_rook_attacks_fast(
                                 black_king_position,
                                 occupancy_without_ep_pawns,
                             );
@@ -1485,7 +1485,7 @@ impl Engine {
                 temp_bitboard = self.PIECE_ARRAY[BN];
 
                 while temp_bitboard != 0 {
-                    starting_square = self.bitscan_forward_separate(temp_bitboard); //looks for the startingSquare
+                    starting_square = Self::bitscan_forward_separate(temp_bitboard); //looks for the startingSquare
                     temp_bitboard &= temp_bitboard - 1; //removes the knight from that square to not infinitely loop
 
                     temp_pin_bitboard = MAX_ULONG;
@@ -1503,7 +1503,7 @@ impl Engine {
                         & check_bitboard)
                         & temp_pin_bitboard; //gets knight captures
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1519,7 +1519,7 @@ impl Engine {
                         & temp_pin_bitboard;
 
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1532,7 +1532,7 @@ impl Engine {
 
                 temp_bitboard = self.PIECE_ARRAY[BB];
                 while temp_bitboard != 0 {
-                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    starting_square = Self::bitscan_forward_separate(temp_bitboard);
                     temp_bitboard &= temp_bitboard - 1;
 
                     temp_pin_bitboard = MAX_ULONG;
@@ -1546,12 +1546,12 @@ impl Engine {
                     }
 
                     let bishop_attacks =
-                        self.get_bishop_attacks_fast(starting_square, combined_occupancies);
+                        Self::get_bishop_attacks_fast(starting_square, combined_occupancies);
 
                     temp_attack =
                         ((bishop_attacks & white_occupancies) & check_bitboard) & temp_pin_bitboard;
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1564,7 +1564,7 @@ impl Engine {
                     temp_attack = ((bishop_attacks & (!combined_occupancies)) & check_bitboard)
                         & temp_pin_bitboard;
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1577,7 +1577,7 @@ impl Engine {
 
                 temp_bitboard = self.PIECE_ARRAY[BR];
                 while temp_bitboard != 0 {
-                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    starting_square = Self::bitscan_forward_separate(temp_bitboard);
                     temp_bitboard &= temp_bitboard - 1;
 
                     temp_pin_bitboard = MAX_ULONG;
@@ -1591,12 +1591,12 @@ impl Engine {
                     }
 
                     let rook_attacks =
-                        self.get_rook_attacks_fast(starting_square, combined_occupancies);
+                        Self::get_rook_attacks_fast(starting_square, combined_occupancies);
 
                     temp_attack =
                         ((rook_attacks & white_occupancies) & check_bitboard) & temp_pin_bitboard;
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1609,7 +1609,7 @@ impl Engine {
                     temp_attack = ((rook_attacks & (!combined_occupancies)) & check_bitboard)
                         & temp_pin_bitboard;
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1622,7 +1622,7 @@ impl Engine {
 
                 temp_bitboard = self.PIECE_ARRAY[BQ];
                 while temp_bitboard != 0 {
-                    starting_square = self.bitscan_forward_separate(temp_bitboard);
+                    starting_square = Self::bitscan_forward_separate(temp_bitboard);
                     temp_bitboard &= temp_bitboard - 1;
 
                     temp_pin_bitboard = MAX_ULONG;
@@ -1636,15 +1636,15 @@ impl Engine {
                     }
 
                     let mut queen_attacks =
-                        self.get_rook_attacks_fast(starting_square, combined_occupancies);
+                        Self::get_rook_attacks_fast(starting_square, combined_occupancies);
                     queen_attacks |=
-                        self.get_bishop_attacks_fast(starting_square, combined_occupancies);
+                        Self::get_bishop_attacks_fast(starting_square, combined_occupancies);
 
                     temp_attack =
                         ((queen_attacks & white_occupancies) & check_bitboard) & temp_pin_bitboard;
 
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1657,7 +1657,7 @@ impl Engine {
                     temp_attack = ((queen_attacks & (!combined_occupancies)) & check_bitboard)
                         & temp_pin_bitboard;
                     while temp_attack != 0 {
-                        target_square = self.bitscan_forward_separate(temp_attack);
+                        target_square = Self::bitscan_forward_separate(temp_attack);
                         temp_attack &= temp_attack - 1;
 
                         self.STARTING_SQUARES[ply][move_count] = starting_square;
@@ -1670,7 +1670,7 @@ impl Engine {
 
                 temp_attack = constants::KING_ATTACKS[black_king_position] & white_occupancies; //gets knight captures
                 while temp_attack != 0 {
-                    target_square = self.bitscan_forward_separate(temp_attack);
+                    target_square = Self::bitscan_forward_separate(temp_attack);
                     temp_attack &= temp_attack - 1;
 
                     if (self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[target_square]) != 0 {
@@ -1685,7 +1685,7 @@ impl Engine {
                     let occupancy_without_black_king =
                         combined_occupancies & (!self.PIECE_ARRAY[BK]);
                     let bishop_attacks =
-                        self.get_bishop_attacks_fast(target_square, occupancy_without_black_king);
+                        Self::get_bishop_attacks_fast(target_square, occupancy_without_black_king);
                     if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
                         continue;
                     }
@@ -1693,7 +1693,7 @@ impl Engine {
                         continue;
                     }
                     let rook_attacks =
-                        self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
+                        Self::get_rook_attacks_fast(target_square, occupancy_without_black_king);
                     if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
                         continue;
                     }
@@ -1711,7 +1711,7 @@ impl Engine {
                 temp_attack = constants::KING_ATTACKS[black_king_position] & EMPTY_OCCUPANCIES; //get knight moves to emtpy squares
 
                 while temp_attack != 0 {
-                    target_square = self.bitscan_forward_separate(temp_attack);
+                    target_square = Self::bitscan_forward_separate(temp_attack);
                     temp_attack &= temp_attack - 1;
 
                     if (self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[target_square]) != 0 {
@@ -1726,7 +1726,7 @@ impl Engine {
                     let occupancy_without_black_king =
                         combined_occupancies & (!self.PIECE_ARRAY[BK]);
                     let bishop_attacks =
-                        self.get_bishop_attacks_fast(target_square, occupancy_without_black_king);
+                        Self::get_bishop_attacks_fast(target_square, occupancy_without_black_king);
                     if (self.PIECE_ARRAY[WB] & bishop_attacks) != 0 {
                         continue;
                     }
@@ -1734,7 +1734,7 @@ impl Engine {
                         continue;
                     }
                     let rook_attacks =
-                        self.get_rook_attacks_fast(target_square, occupancy_without_black_king);
+                        Self::get_rook_attacks_fast(target_square, occupancy_without_black_king);
                     if (self.PIECE_ARRAY[WR] & rook_attacks) != 0 {
                         continue;
                     }
