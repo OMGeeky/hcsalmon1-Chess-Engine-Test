@@ -197,11 +197,9 @@ const BQ: usize = 10;
 const BK: usize = 11;
 impl Wrapper {
     fn get_rook_attacks_fast(&mut self,starting_square: usize, mut occupancy: u64) -> u64 {
-        unsafe {
-            occupancy &= constants::ROOK_MASKS[starting_square];
-            occupancy = occupancy.wrapping_mul(constants::ROOK_MAGIC_NUMBERS[starting_square]);
-            occupancy >>= 64 - constants::ROOK_REL_BITS[starting_square];
-        }
+        occupancy &= constants::ROOK_MASKS[starting_square];
+        occupancy = occupancy.wrapping_mul(constants::ROOK_MAGIC_NUMBERS[starting_square]);
+        occupancy >>= 64 - constants::ROOK_REL_BITS[starting_square];
         let converted_occupancy: usize = occupancy as usize;
         return constants::ROOK_ATTACKS[starting_square][converted_occupancy];
     }
@@ -223,7 +221,7 @@ impl Wrapper {
 
 
     fn Is_Square_Attacked_By_Black_Global(&mut self, square: usize, occupancy: u64) -> bool {
-        unsafe {
+
             if (self.PIECE_ARRAY[BP] & constants::WHITE_PAWN_ATTACKS[square]) != 0 {
                 return true;
             }
@@ -248,11 +246,11 @@ impl Wrapper {
                 return true;
             }
             return false;
-        }
+
     }
 
     fn Is_Square_Attacked_By_White_Global(&mut self,square: usize, occupancy: u64) -> bool {
-        unsafe {
+
             if (self.PIECE_ARRAY[WP] & constants::BLACK_PAWN_ATTACKS[square]) != 0 {
                 return true;
             }
@@ -277,7 +275,7 @@ impl Wrapper {
                 return true;
             }
             return false;
-        }
+
     }
 
     fn OutOfBounds(&mut self,input: usize) -> bool {
@@ -302,7 +300,7 @@ impl Wrapper {
 
 
     fn set_starting_position(&mut self) {
-        unsafe {
+
              self.EP = 65;
             self.WHITE_TO_PLAY = true;
             self.CASTLE_RIGHTS[0] = true;
@@ -322,7 +320,7 @@ impl Wrapper {
             self.PIECE_ARRAY[9] = 129;
             self.PIECE_ARRAY[10] = 8;
             self.PIECE_ARRAY[11] = 16;
-        }
+
     }
 
     fn is_occupied(&mut self,bitboard: u64, square: usize) -> bool {
@@ -331,11 +329,11 @@ impl Wrapper {
 
     fn get_occupied_index(&mut self,square: usize) -> usize {
         for i in 0..12 {
-            unsafe {
+
                 if self.is_occupied(self.PIECE_ARRAY[i], square) {
                     return i;
                 }
-            }
+
         }
         return 12;
     }
@@ -350,7 +348,7 @@ impl Wrapper {
     }
 
     fn print_board(&mut self) {
-        unsafe {
+
             const PIECE_NAMES: [u8; 13] = [
                 b'P', b'N', b'B', b'R', b'Q', b'K', b'P', b'N', b'B', b'R', b'Q', b'K', b'_',
             ];
@@ -386,7 +384,7 @@ impl Wrapper {
             println!("ep: {}\n", self.EP);
             println!();
             println!();
-        }
+
     }
 
     fn perft_inline(&mut self, depth: i8, ply: usize) -> usize {
