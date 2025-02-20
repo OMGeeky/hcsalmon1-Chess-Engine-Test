@@ -35,161 +35,163 @@ impl Wrapper {
         }
     }
 }
+mod consts {
+    pub const MAGIC: u64 = 0x03f79d71b4cb0a89;
 
-const MAGIC: u64 = 0x03f79d71b4cb0a89;
+    pub const PINNED_SQUARE_INDEX: usize = 0;
+    pub const PINNING_PIECE_INDEX: usize = 1;
 
-const PINNED_SQUARE_INDEX: usize = 0;
-const PINNING_PIECE_INDEX: usize = 1;
+    pub const TAG_NONE: usize = 0;
+    pub const TAG_CAPTURE: usize = 1;
+    pub const TAG_WHITEEP: usize = 2;
+    pub const TAG_BLACKEP: usize = 3;
+    pub const TAG_WCASTLEKS: usize = 4;
+    pub const TAG_WCASTLEQS: usize = 5;
+    pub const TAG_BCASTLEKS: usize = 6;
+    pub const TAG_BCASTLEQS: usize = 7;
+    pub const TAG_B_KNIGHT_PROMOTION: usize = 8;
+    pub const TAG_B_BISHOP_PROMOTION: usize = 9;
+    pub const TAG_B_QUEEN_PROMOTION: usize = 10;
+    pub const TAG_B_ROOK_PROMOTION: usize = 11;
+    pub const TAG_W_KNIGHT_PROMOTION: usize = 12;
+    pub const TAG_W_BISHOP_PROMOTION: usize = 13;
+    pub const TAG_W_QUEEN_PROMOTION: usize = 14;
+    pub const TAG_W_ROOK_PROMOTION: usize = 15;
+    pub const TAG_B_CAPTURE_KNIGHT_PROMOTION: usize = 16;
+    pub const TAG_B_CAPTURE_BISHOP_PROMOTION: usize = 17;
+    pub const TAG_B_CAPTURE_QUEEN_PROMOTION: usize = 18;
+    pub const TAG_B_CAPTURE_ROOK_PROMOTION: usize = 19;
+    pub const TAG_W_CAPTURE_KNIGHT_PROMOTION: usize = 20;
+    pub const TAG_W_CAPTURE_BISHOP_PROMOTION: usize = 21;
+    pub const TAG_W_CAPTURE_QUEEN_PROMOTION: usize = 22;
+    pub const TAG_W_CAPTURE_ROOK_PROMOTION: usize = 23;
+    pub const TAG_DOUBLE_PAWN_WHITE: usize = 24;
+    pub const TAG_DOUBLE_PAWN_BLACK: usize = 25;
 
-const TAG_NONE: usize = 0;
-const TAG_CAPTURE: usize = 1;
-const TAG_WHITEEP: usize = 2;
-const TAG_BLACKEP: usize = 3;
-const TAG_WCASTLEKS: usize = 4;
-const TAG_WCASTLEQS: usize = 5;
-const TAG_BCASTLEKS: usize = 6;
-const TAG_BCASTLEQS: usize = 7;
-const TAG_B_KNIGHT_PROMOTION: usize = 8;
-const TAG_B_BISHOP_PROMOTION: usize = 9;
-const TAG_B_QUEEN_PROMOTION: usize = 10;
-const TAG_B_ROOK_PROMOTION: usize = 11;
-const TAG_W_KNIGHT_PROMOTION: usize = 12;
-const TAG_W_BISHOP_PROMOTION: usize = 13;
-const TAG_W_QUEEN_PROMOTION: usize = 14;
-const TAG_W_ROOK_PROMOTION: usize = 15;
-const TAG_B_CAPTURE_KNIGHT_PROMOTION: usize = 16;
-const TAG_B_CAPTURE_BISHOP_PROMOTION: usize = 17;
-const TAG_B_CAPTURE_QUEEN_PROMOTION: usize = 18;
-const TAG_B_CAPTURE_ROOK_PROMOTION: usize = 19;
-const TAG_W_CAPTURE_KNIGHT_PROMOTION: usize = 20;
-const TAG_W_CAPTURE_BISHOP_PROMOTION: usize = 21;
-const TAG_W_CAPTURE_QUEEN_PROMOTION: usize = 22;
-const TAG_W_CAPTURE_ROOK_PROMOTION: usize = 23;
-const TAG_DOUBLE_PAWN_WHITE: usize = 24;
-const TAG_DOUBLE_PAWN_BLACK: usize = 25;
+    pub const MOVE_STARTING: usize = 0;
+    pub const MOVE_TARGET: usize = 1;
+    pub const MOVE_PIECE: usize = 2;
+    pub const MOVE_TAG: usize = 3;
+    pub const MAX_ULONG: u64 = 18446744073709551615;
 
-const MOVE_STARTING: usize = 0;
-const MOVE_TARGET: usize = 1;
-const MOVE_PIECE: usize = 2;
-const MOVE_TAG: usize = 3;
-const MAX_ULONG: u64 = 18446744073709551615;
+    pub const RANK_1_BITBOARD: u64 = 18374686479671623680;
+    pub const RANK_2_BITBOARD: u64 = 71776119061217280;
+    pub const RANK_3_BITBOARD: u64 = 280375465082880;
+    pub const RANK_4_BITBOARD: u64 = 1095216660480;
+    pub const RANK_5_BITBOARD: u64 = 4278190080;
+    pub const RANK_6_BITBOARD: u64 = 16711680;
+    pub const RANK_7_BITBOARD: u64 = 65280;
+    pub const RANK_8_BITBOARD: u64 = 255;
 
-const RANK_1_BITBOARD: u64 = 18374686479671623680;
-const RANK_2_BITBOARD: u64 = 71776119061217280;
-const RANK_3_BITBOARD: u64 = 280375465082880;
-const RANK_4_BITBOARD: u64 = 1095216660480;
-const RANK_5_BITBOARD: u64 = 4278190080;
-const RANK_6_BITBOARD: u64 = 16711680;
-const RANK_7_BITBOARD: u64 = 65280;
-const RANK_8_BITBOARD: u64 = 255;
+    pub const WKS_CASTLE_RIGHTS: usize = 0;
+    pub const WQS_CASTLE_RIGHTS: usize = 1;
+    pub const BKS_CASTLE_RIGHTS: usize = 2;
+    pub const BQS_CASTLE_RIGHTS: usize = 3;
 
-const WKS_CASTLE_RIGHTS: usize = 0;
-const WQS_CASTLE_RIGHTS: usize = 1;
-const BKS_CASTLE_RIGHTS: usize = 2;
-const BQS_CASTLE_RIGHTS: usize = 3;
+    pub const WKS_EMPTY_BITBOARD: u64 = 6917529027641081856;
+    pub const WQS_EMPTY_BITBOARD: u64 = 1008806316530991104;
+    pub const BKS_EMPTY_BITBOARD: u64 = 96;
+    pub const BQS_EMPTY_BITBOARD: u64 = 14;
 
-const WKS_EMPTY_BITBOARD: u64 = 6917529027641081856;
-const WQS_EMPTY_BITBOARD: u64 = 1008806316530991104;
-const BKS_EMPTY_BITBOARD: u64 = 96;
-const BQS_EMPTY_BITBOARD: u64 = 14;
+    pub const EMPTY_BITBOARD: u64 = 0;
 
-const EMPTY_BITBOARD: u64 = 0;
+    pub const A8: usize = 0;
+    pub const B8: usize = 1;
+    pub const C8: usize = 2;
+    pub const D8: usize = 3;
+    pub const E8: usize = 4;
+    pub const F8: usize = 5;
+    pub const G8: usize = 6;
+    pub const H8: usize = 7;
+    pub const A7: usize = 8;
+    pub const B7: usize = 9;
+    pub const C7: usize = 10;
+    pub const D7: usize = 11;
+    pub const E7: usize = 12;
+    pub const F7: usize = 13;
+    pub const G7: usize = 14;
+    pub const H7: usize = 15;
+    pub const A6: usize = 16;
+    pub const B6: usize = 17;
+    pub const C6: usize = 18;
+    pub const D6: usize = 19;
+    pub const E6: usize = 20;
+    pub const F6: usize = 21;
+    pub const G6: usize = 22;
+    pub const H6: usize = 23;
+    pub const A5: usize = 24;
+    pub const B5: usize = 25;
+    pub const C5: usize = 26;
+    pub const D5: usize = 27;
+    pub const E5: usize = 28;
+    pub const F5: usize = 29;
+    pub const G5: usize = 30;
+    pub const H5: usize = 31;
+    pub const A4: usize = 32;
+    pub const B4: usize = 33;
+    pub const C4: usize = 34;
+    pub const D4: usize = 35;
+    pub const E4: usize = 36;
+    pub const F4: usize = 37;
+    pub const G4: usize = 38;
+    pub const H4: usize = 39;
+    pub const A3: usize = 40;
+    pub const B3: usize = 41;
+    pub const C3: usize = 42;
+    pub const D3: usize = 43;
+    pub const E3: usize = 44;
+    pub const F3: usize = 45;
+    pub const G3: usize = 46;
+    pub const H3: usize = 47;
+    pub const A2: usize = 48;
+    pub const B2: usize = 49;
+    pub const C2: usize = 50;
+    pub const D2: usize = 51;
+    pub const E2: usize = 52;
+    pub const F2: usize = 53;
+    pub const G2: usize = 54;
+    pub const H2: usize = 55;
+    pub const A1: usize = 56;
+    pub const B1: usize = 57;
+    pub const C1: usize = 58;
+    pub const D1: usize = 59;
+    pub const E1: usize = 60;
+    pub const F1: usize = 61;
+    pub const G1: usize = 62;
+    pub const H1: usize = 63;
 
-const A8: usize = 0;
-const B8: usize = 1;
-const C8: usize = 2;
-const D8: usize = 3;
-const E8: usize = 4;
-const F8: usize = 5;
-const G8: usize = 6;
-const H8: usize = 7;
-const A7: usize = 8;
-const B7: usize = 9;
-const C7: usize = 10;
-const D7: usize = 11;
-const E7: usize = 12;
-const F7: usize = 13;
-const G7: usize = 14;
-const H7: usize = 15;
-const A6: usize = 16;
-const B6: usize = 17;
-const C6: usize = 18;
-const D6: usize = 19;
-const E6: usize = 20;
-const F6: usize = 21;
-const G6: usize = 22;
-const H6: usize = 23;
-const A5: usize = 24;
-const B5: usize = 25;
-const C5: usize = 26;
-const D5: usize = 27;
-const E5: usize = 28;
-const F5: usize = 29;
-const G5: usize = 30;
-const H5: usize = 31;
-const A4: usize = 32;
-const B4: usize = 33;
-const C4: usize = 34;
-const D4: usize = 35;
-const E4: usize = 36;
-const F4: usize = 37;
-const G4: usize = 38;
-const H4: usize = 39;
-const A3: usize = 40;
-const B3: usize = 41;
-const C3: usize = 42;
-const D3: usize = 43;
-const E3: usize = 44;
-const F3: usize = 45;
-const G3: usize = 46;
-const H3: usize = 47;
-const A2: usize = 48;
-const B2: usize = 49;
-const C2: usize = 50;
-const D2: usize = 51;
-const E2: usize = 52;
-const F2: usize = 53;
-const G2: usize = 54;
-const H2: usize = 55;
-const A1: usize = 56;
-const B1: usize = 57;
-const C1: usize = 58;
-const D1: usize = 59;
-const E1: usize = 60;
-const F1: usize = 61;
-const G1: usize = 62;
-const H1: usize = 63;
+    pub const SQ_CHAR_Y: [char; 65] = [
+        '8', '8', '8', '8', '8', '8', '8', '8', '7', '7', '7', '7', '7', '7', '7', '7', '6', '6',
+        '6', '6', '6', '6', '6', '6', '5', '5', '5', '5', '5', '5', '5', '5', '4', '4', '4', '4',
+        '4', '4', '4', '4', '3', '3', '3', '3', '3', '3', '3', '3', '2', '2', '2', '2', '2', '2',
+        '2', '2', '1', '1', '1', '1', '1', '1', '1', '1', 'A',
+    ];
 
-const SQ_CHAR_Y: [char; 65] = [
-    '8', '8', '8', '8', '8', '8', '8', '8', '7', '7', '7', '7', '7', '7', '7', '7', '6', '6', '6',
-    '6', '6', '6', '6', '6', '5', '5', '5', '5', '5', '5', '5', '5', '4', '4', '4', '4', '4', '4',
-    '4', '4', '3', '3', '3', '3', '3', '3', '3', '3', '2', '2', '2', '2', '2', '2', '2', '2', '1',
-    '1', '1', '1', '1', '1', '1', '1', 'A',
-];
+    pub const SQ_CHAR_X: [char; 65] = [
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'a', 'b',
+        'c', 'd', 'e', 'f', 'g', 'h', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'a', 'b', 'c', 'd',
+        'e', 'f', 'g', 'h', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'a', 'b', 'c', 'd', 'e', 'f',
+        'g', 'h', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'N',
+    ];
 
-const SQ_CHAR_X: [char; 65] = [
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'a', 'b', 'c',
-    'd', 'e', 'f', 'g', 'h', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'a', 'b', 'c', 'd', 'e', 'f',
-    'g', 'h', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'a',
-    'b', 'c', 'd', 'e', 'f', 'g', 'h', 'N',
-];
-
-const WP: usize = 0;
-const WN: usize = 1;
-const WB: usize = 2;
-const WR: usize = 3;
-const WQ: usize = 4;
-const WK: usize = 5;
-const BP: usize = 6;
-const BN: usize = 7;
-const BB: usize = 8;
-const BR: usize = 9;
-const BQ: usize = 10;
-const BK: usize = 11;
+    pub const WP: usize = 0;
+    pub const WN: usize = 1;
+    pub const WB: usize = 2;
+    pub const WR: usize = 3;
+    pub const WQ: usize = 4;
+    pub const WK: usize = 5;
+    pub const BP: usize = 6;
+    pub const BN: usize = 7;
+    pub const BB: usize = 8;
+    pub const BR: usize = 9;
+    pub const BQ: usize = 10;
+    pub const BK: usize = 11;
+}
+use consts::*;
 impl Wrapper {
     fn get_rook_attacks_fast(&mut self, starting_square: usize, mut occupancy: u64) -> u64 {
         occupancy &= constants::ROOK_MASKS[starting_square];
-        occupancy = occupancy.wrapping_mul(constants::ROOK_MAGIC_NUMBERS[starting_square]);
+        occupancy = occupancy.saturating_mul(constants::ROOK_MAGIC_NUMBERS[starting_square]);
         occupancy >>= 64 - constants::ROOK_REL_BITS[starting_square];
         let converted_occupancy: usize = occupancy as usize;
         return constants::ROOK_ATTACKS[starting_square][converted_occupancy];
@@ -197,7 +199,7 @@ impl Wrapper {
 
     fn get_bishop_attacks_fast(&mut self, starting_square: usize, mut occupancy: u64) -> u64 {
         occupancy &= constants::BISHOP_MASKS[starting_square];
-        occupancy = occupancy.wrapping_mul(constants::BISHOP_MAGIC_NUMBERS[starting_square]);
+        occupancy = occupancy.saturating_mul(constants::BISHOP_MAGIC_NUMBERS[starting_square]);
         occupancy >>= 64 - constants::BISHOP_REL_BITS[starting_square];
         return constants::BISHOP_ATTACKS[starting_square][occupancy as usize];
     }
